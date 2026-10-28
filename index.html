@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fish Fang Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#000000',
+                        cardBg: '#121212',
+                        accent: '#ffffff'
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS für OpenStreetMap -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        .dark-map .leaflet-layer {
+            filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-white min-h-screen font-sans">
+
+    <!-- Startbildschirm -->
+    <div id="screen-welcome" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center p-6 text-center space-y-6">
+        <div class="space-y-2">
+            <i data-lucide="fish" class="text-white w-16 h-16 mx-auto"></i>
+            <h1 class="text-3xl font-extrabold tracking-tight">Fischfang Tracker</h1>
+            <p class="text-sm text-neutral-400">designed by MZ-Fishing</p>
+        </div>
+        <button onclick="startApp()" class="w-full max-w-xs bg-white text-black font-semibold py-3.5 px-6 rounded-2xl shadow-lg hover:bg-neutral-200 transition flex items-center justify-center space-x-2">
+            <i data-lucide="map" class="w-5 h-5"></i>
+            <span>Karte öffnen & Starten</span>
+        </button>
+    </div>
+
+    <!-- Hauptanwendung -->
+    <div id="app-container" class="hidden pb-20">
+        <!-- Header -->
+        <header class="bg-cardBg border-b border-neutral-800 sticky top-0 z-40 px-4 py-3">
+            <div class="max-w-md mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="fish" class="text-white w-6 h-6"></i>
+                    <h1 class="text-base font-bold tracking-wide">Fish Fang Tracker</h1>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="switchView('map')" id="btn-view-map" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="map" class="w-5 h-5"></i></button>
+                    <button onclick="switchView('list')" id="btn-view-list" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="list" class="w-5 h-5"></i></button>
+                    <button onclick="switchView('stats')" id="btn-view-stats" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="max-w-md mx-auto p-4 space-y-4">
+
+            <!-- Ansicht: OpenStreetMap -->
+            <div id="view-map" class="space-y-3">
+                <div class="bg-cardBg border border-neutral-800 rounded-2xl p-3 flex justify-between items-center text-xs text-neutral-400">
+                    <span id="map-status">GPS-Standort wird ermittelt...</span>
+                    <button onclick="getUserLocation(true)" class="text-white underline hover:text-neutral-300">Standort zentrieren</button>
+                </div>
+                <div id="osm-map" class="w-full h-[65vh] rounded-2xl border border-neutral-800 shadow-inner z-10 dark-map"></div>
+                <p class="text-xs text-center text-neutral-500">Tippe auf eine beliebige Stelle in der Karte, um dort einen Fang zu erfassen.</p>
+            </div>
+
+            <!-- Ansicht: Fänge Liste -->
+            <div id="view-list" class="hidden space-y-4">
+                <div class="flex justify-between items-center px-1">
+                    <span id="catch-count" class="text-xs text-neutral-400 font-medium">0 Fänge erfasst</span>
+                    <select id="filter-species" onchange="renderCatches()" class="bg-cardBg border border-neutral-800 text-xs rounded-xl px-2.5 py-1.5 text-white focus:outline-none focus:border-white">
+                        <option value="">Alle Arten</option>
+                    </select>
+                </div>
+                <div id="catches-container" class="space-y-3"></div>
+            </div>
+
+            <!-- Ansicht: Statistik -->
+            <div id="view-stats" class="hidden space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-cardBg p-4 rounded-2xl border border-neutral-800 shadow-sm">
+                        <span class="text-xs text-neutral-400">Gesamtfänge</span>
+                        <h2 id="stat-total" class="text-2xl font-bold text-white mt-1">0</h2>
+                    </div>
+                    <div class="bg-cardBg p-4 rounded-2xl border border-neutral-800 shadow-sm">
+                        <span class="text-xs text-neutral-400">Größter Fisch</span>
+                        <h2 id="stat-biggest" class="text-2xl font-bold text-white mt-1">0 cm</h2>
+                    </div>
+                </div>
+                <div class="bg-cardBg p-4 rounded-2xl border border-neutral-800 shadow-sm space-y-3">
+                    <h3 class="text-sm font-semibold text-white border-b border-neutral-800 pb-2">Häufigste Arten</h3>
+                    <div id="stat-species-list" class="space-y-2 text-sm text-neutral-400"></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modal für neuen Fang / Bearbeiten -->
+    <div id="catch-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-cardBg w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border border-neutral-800 max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-neutral-800 flex justify-between items-center">
+                <h2 id="modal-title" class="font-bold text-base">Fang erfassen</h2>
+                <button onclick="closeModal()" class="text-neutral-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="catch-form" onsubmit="saveCatch(event)" class="p-4 overflow-y-auto space-y-4 flex-1">
+                <input type="hidden" id="catch-id">
+                <input type="hidden" id="latitude">
+                <input type="hidden" id="longitude">
+
+                <div>
+                    <label class="block text-xs font-medium text-neutral-400 mb-1">Fischart</label>
+                    <input type="text" id="species" required list="species-suggestions" placeholder="z.B. Zander, Hecht, Barsch" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    <datalist id="species-suggestions">
+                        <option value="Zander">
+                        <option value="Hecht">
+                        <option value="Barsch">
+                        <option value="Forelle">
+                        <option value="Karpfen">
+                    </datalist>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-neutral-400 mb-1">Länge (cm)</label>
+                        <input type="number" step="0.1" id="length" placeholder="z.B. 65" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-neutral-400 mb-1">Gewicht (kg)</label>
+                        <input type="number" step="0.01" id="weight" placeholder="z.B. 2.5" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-neutral-400 mb-1">Standort / Koordinaten</label>
+                    <input type="text" id="location" readonly class="w-full bg-black/50 border border-neutral-800 rounded-xl px-3 py-2.5 text-sm text-neutral-400 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-neutral-400 mb-1">Köder</label>
+                        <input type="text" id="bait" placeholder="z.B. Gummifisch" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-neutral-400 mb-1">Datum & Uhrzeit</label>
+                        <input type="datetime-local" id="datetime" required class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-neutral-400 mb-1">Notizen</label>
+                    <textarea id="notes" rows="2" placeholder="Besonderheiten, Wassertiefe..." class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white resize-none"></textarea>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full bg-white text-black font-semibold py-3 rounded-xl transition hover:bg-neutral-200">Fang speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script>
+        let map;
+        let userMarker;
+        let catchMarkers = [];
+        let currentPosition = { lat: 50.0, lng: 8.27 }; // Standard Mainz
+        let catches = JSON.parse(localStorage.getItem('fish_catches')) || [];
+        let mapInitialized = false;
+
+        function startApp() {
+            document.getElementById('screen-welcome').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            initMap();
+            initData();
+        }
+
+        function initData() {
+            updateSpeciesFilter();
+            renderCatches();
+            renderStats();
+            lucide.createIcons();
+        }
+
+        function initMap() {
+            if (mapInitialized) return;
+            
+            map = L.map('osm-map').setView([currentPosition.lat, currentPosition.lng], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            map.on('click', (e) => {
+                openModalForLocation(e.latlng.lat, e.latlng.lng);
+            });
+
+            mapInitialized = true;
+            getUserLocation(true); // Direkt beim Start GPS abfragen und zentrieren
+            plotCatchMarkers();
+        }
+
+        function getUserLocation(panToUser = false) {
+            const statusEl = document.getElementById('map-status');
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    currentPosition = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    
+                    if (panToUser) {
+                        map.setView([currentPosition.lat, currentPosition.lng], 15);
+                    }
+                    
+                    if (userMarker) map.removeLayer(userMarker);
+                    userMarker = L.circleMarker([currentPosition.lat, currentPosition.lng], {
+                        radius: 8,
+                        fillColor: '#ffffff',
+                        color: '#000000',
+                        weight: 2,
+                        fillOpacity: 1
+                    }).addTo(map).bindPopup('Dein Standort');
+
+                    statusEl.innerText = 'GPS-Standort aktiv';
+                }, () => {
+                    statusEl.innerText = 'Standort konnte nicht ermittelt werden (GPS aktivieren).';
+                }, { enableHighAccuracy: true });
+            } else {
+                statusEl.innerText = 'Geolocation wird nicht unterstützt.';
+            }
+        }
+
+        function switchView(view) {
+            const mapDiv = document.getElementById('view-map');
+            const listDiv = document.getElementById('view-list');
+            const statsDiv = document.getElementById('view-stats');
+
+            mapDiv.classList.add('hidden');
+            listDiv.classList.add('hidden');
+            statsDiv.classList.add('hidden');
+
+            if (view === 'map') {
+                mapDiv.classList.remove('hidden');
+                if (map) map.invalidateSize();
+            } else if (view === 'list') {
+                listDiv.classList.remove('hidden');
+                renderCatches();
+            } else if (view === 'stats') {
+                statsDiv.classList.remove('hidden');
+                renderStats();
+            }
+            lucide.createIcons();
+        }
+
+        function getLocalDateTimeString() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        function openModalForLocation(lat, lng) {
+            document.getElementById('catch-modal').classList.remove('hidden');
+            document.getElementById('modal-title').innerText = 'Fang erfassen';
+            document.getElementById('catch-form').reset();
+            document.getElementById('catch-id').value = '';
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            document.getElementById('location').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            document.getElementById('datetime').value = getLocalDateTimeString();
+        }
+
+        function openModalEdit(id) {
+            document.getElementById('catch-modal').classList.remove('hidden');
+            document.getElementById('modal-title').innerText = 'Fang bearbeiten';
+            const item = catches.find(c => c.id === id);
+            if (item) {
+                document.getElementById('catch-id').value = item.id;
+                document.getElementById('species').value = item.species;
+                document.getElementById('length').value = item.length || '';
+                document.getElementById('weight').value = item.weight || '';
+                document.getElementById('latitude').value = item.lat || '';
+                document.getElementById('longitude').value = item.lng || '';
+                document.getElementById('location').value = item.location || '';
+                document.getElementById('bait').value = item.bait || '';
+                document.getElementById('datetime').value = item.datetime || getLocalDateTimeString();
+                document.getElementById('notes').value = item.notes || '';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('catch-modal').classList.add('hidden');
+        }
+
+        function saveCatch(e) {
+            e.preventDefault();
+            const id = document.getElementById('catch-id').value;
+            const data = {
+                id: id || Date.now().toString(),
+                species: document.getElementById('species').value,
+                length: parseFloat(document.getElementById('length').value) || null,
+                weight: parseFloat(document.getElementById('weight').value) || null,
+                lat: parseFloat(document.getElementById('latitude').value) || null,
+                lng: parseFloat(document.getElementById('longitude').value) || null,
+                location: document.getElementById('location').value,
+                bait: document.getElementById('bait').value,
+                datetime: document.getElementById('datetime').value,
+                notes: document.getElementById('notes').value
+            };
+
+            if (id) {
+                const index = catches.findIndex(c => c.id === id);
+                if (index !== -1) catches[index] = data;
+            } else {
+                catches.unshift(data);
+            }
+
+            localStorage.setItem('fish_catches', JSON.stringify(catches));
+            closeModal();
+            updateSpeciesFilter();
+            renderCatches();
+            renderStats();
+            plotCatchMarkers();
+        }
+
+        function deleteCatch(id) {
+            if (confirm('Möchtest du diesen Fang wirklich löschen?')) {
+                catches = catches.filter(c => c.id !== id);
+                localStorage.setItem('fish_catches', JSON.stringify(catches));
+                updateSpeciesFilter();
+                renderCatches();
+                renderStats();
+                plotCatchMarkers();
+            }
+        }
+
+        function plotCatchMarkers() {
+            if (!map) return;
+            catchMarkers.forEach(m => map.removeLayer(m));
+            catchMarkers = [];
+
+            catches.forEach(c => {
+                if (c.lat && c.lng) {
+                    const marker = L.marker([c.lat, c.lng]).addTo(map);
+                    marker.bindPopup(`<b>${c.species}</b><br>${c.length ? c.length + ' cm' : ''}`);
+                    marker.on('click', () => {
+                        openModalEdit(c.id);
+                    });
+                    catchMarkers.push(marker);
+                }
+            });
+        }
+
+        function updateSpeciesFilter() {
+            const select = document.getElementById('filter-species');
+            const currentVal = select.value;
+            const speciesSet = [...new Set(catches.map(c => c.species))];
+            
+            select.innerHTML = '<option value="">Alle Arten</option>';
+            speciesSet.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.innerText = s;
+                if (s === currentVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderCatches() {
+            const container = document.getElementById('catches-container');
+            const filter = document.getElementById('filter-species').value;
+            const filtered = filter ? catches.filter(c => c.species === filter) : catches;
+
+            document.getElementById('catch-count').innerText = `${filtered.length} Fänge erfasst`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-neutral-600 bg-cardBg rounded-2xl border border-neutral-800">
+                        <i data-lucide="fish-off" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                        <p class="text-sm">Keine Fänge gefunden</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = filtered.map(c => `
+                <div class="bg-cardBg border border-neutral-800 rounded-2xl p-4 shadow-sm flex flex-col space-y-2">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs text-white font-semibold uppercase tracking-wider">${c.species}</span>
+                            <div class="flex items-baseline space-x-2 mt-0.5">
+                                ${c.length ? `<span class="text-lg font-bold">${c.length} cm</span>` : ''}
+                                ${c.weight ? `<span class="text-xs text-neutral-400">(${c.weight} kg)</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button onclick="openModalEdit('${c.id}')" class="p-1.5 text-neutral-400 hover:text-white transition"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="deleteCatch('${c.id}')" class="p-1.5 text-neutral-400 hover:text-red-400 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs text-neutral-400 pt-1 border-t border-neutral-800/60">
+                        ${c.location ? `<div class="flex items-center space-x-1 truncate"><i data-lucide="map-pin" class="w-3 h-3 text-neutral-500 shrink-0"></i><span class="truncate">${c.location}</span></div>` : ''}
+                        ${c.bait ? `<div class="flex items-center space-x-1 truncate"><i data-lucide="anchor" class="w-3 h-3 text-neutral-500 shrink-0"></i><span class="truncate">${c.bait}</span></div>` : ''}
+                        <div class="flex items-center space-x-1"><i data-lucide="calendar" class="w-3 h-3 text-neutral-500 shrink-0"></i><span>${c.datetime ? c.datetime.replace('T', ' ') : ''}</span></div>
+                    </div>
+                    ${c.notes ? `<p class="text-xs text-neutral-300 bg-black p-2 rounded-xl mt-1">${c.notes}</p>` : ''}
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderStats() {
+            document.getElementById('stat-total').innerText = catches.length;
+            
+            const maxLen = catches.reduce((max, c) => (c.length && c.length > max ? c.length : max), 0);
+            document.getElementById('stat-biggest').innerText = `${maxLen} cm`;
+
+            const counts = {};
+            catches.forEach(c => {
+                counts[c.species] = (counts[c.species] || 0) + 1;
+            });
+
+            const sortedSpecies = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const speciesListContainer = document.getElementById('stat-species-list');
+
+            if (sortedSpecies.length === 0) {
+                speciesListContainer.innerHTML = '<p class="text-xs text-neutral-600">Noch keine Daten vorhanden</p>';
+                return;
+            }
+
+            speciesListContainer.innerHTML = sortedSpecies.map(([species, count]) => `
+                <div class="flex justify-between items-center">
+                    <span class="text-neutral-300">${species}</span>
+                    <span class="bg-black px-2 py-0.5 rounded-md text-xs font-medium text-white border border-neutral-800">${count}x</span>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
