@@ -282,6 +282,13 @@
             lucide.createIcons();
         }
 
+        function jumpToLocation(lat, lng) {
+            switchView('map');
+            if (map) {
+                map.setView([lat, lng], 16);
+            }
+        }
+
         function getLocalDateTimeString() {
             const now = new Date();
             const year = now.getFullYear();
@@ -468,7 +475,7 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2 text-xs text-neutral-400 pt-1 border-t border-neutral-800/60">
-                        ${c.location ? `<div class="flex items-center space-x-1 truncate"><i data-lucide="map-pin" class="w-3 h-3 text-neutral-500 shrink-0"></i><span class="truncate">${c.location}</span></div>` : ''}
+                        ${c.lat && c.lng ? `<div onclick="jumpToLocation(${c.lat}, ${c.lng})" class="flex items-center space-x-1 truncate cursor-pointer hover:text-white transition"><i data-lucide="map-pin" class="w-3 h-3 text-white shrink-0"></i><span class="truncate underline">${c.location}</span></div>` : (c.location ? `<div class="flex items-center space-x-1 truncate"><i data-lucide="map-pin" class="w-3 h-3 text-neutral-500 shrink-0"></i><span class="truncate">${c.location}</span></div>` : '')}
                         ${c.bait ? `<div class="flex items-center space-x-1 truncate"><i data-lucide="anchor" class="w-3 h-3 text-neutral-500 shrink-0"></i><span class="truncate">${c.bait}</span></div>` : ''}
                         <div class="flex items-center space-x-1"><i data-lucide="calendar" class="w-3 h-3 text-neutral-500 shrink-0"></i><span>${c.datetime ? c.datetime.replace('T', ' ') : ''}</span></div>
                     </div>
