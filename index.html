@@ -133,9 +133,9 @@
         <div class="w-20 h-20 bg-neutral-900 border border-neutral-700 rounded-full flex items-center justify-center animate-bounce">
             <i data-lucide="mic" class="w-10 h-10 text-red-500"></i>
         </div>
-        <h2 class="text-xl font-bold">Aufnahme läuft...</h2>
-        <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs min-h-[3rem]">Sprich ganz in Ruhe deinen Fang ein...</p>
-        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-white text-black font-semibold py-3 px-8 rounded-2xl text-sm shadow-xl hover:bg-neutral-200 transition">Fertig & Speichern</button>
+        <h2 class="text-xl font-bold">Zuhören aktiv...</h2>
+        <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs min-h-[3rem]">Sprich jetzt deinen Satz (z.B. "Zander 35 cm Köder Gummifisch")...</p>
+        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-white text-black font-semibold py-3 px-8 rounded-2xl text-sm shadow-xl hover:bg-neutral-200 transition">Aufnahme beenden & Speichern</button>
     </div>
 
     <!-- Modal für neuen Fang / Bearbeiten -->
@@ -213,8 +213,7 @@
         let catches = JSON.parse(localStorage.getItem('fish_catches')) || [];
         let mapInitialized = false;
         let recognition;
-        let finalizedChunks = [];
-        let isRecording = false;
+        let recordedSpeechResult = '';
 
         function startApp() {
             document.getElementById('screen-welcome').classList.add('hidden');
@@ -289,45 +288,35 @@
 
             recognition = new SpeechRecognition();
             recognition.lang = 'de-DE';
-            recognition.continuous = true;
+            recognition.continuous = false; // Stabiler Einmal-Modus gegen Echo-Effekte
             recognition.interimResults = true;
 
-            finalizedChunks = [];
-            isRecording = true;
-
+            recordedSpeechResult = '';
             const overlay = document.getElementById('voice-overlay');
             const transcriptEl = document.getElementById('voice-transcript');
             overlay.classList.remove('hidden');
-            transcriptEl.innerText = "Höre zu... Sprich deinen Fang ein.";
+            transcriptEl.innerText = "Höre zu... Sprich jetzt deinen Satz.";
 
             recognition.onresult = function(event) {
                 let interim = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    const transcriptPart = event.results[i][0].transcript.trim();
                     if (event.results[i].isFinal) {
-                        // Nur hinzufügen, wenn es sich vom letzten Chunk unterscheidet (gegen Echo/Dopplung)
-                        if (finalizedChunks.length === 0 || finalizedChunks[finalizedChunks.length - 1] !== transcriptPart) {
-                            finalizedChunks.push(transcriptPart);
-                        }
+                        recordedSpeechResult += event.results[i][0].transcript + ' ';
                     } else {
-                        interim = transcriptPart;
+                        interim += event.results[i][0].transcript;
                     }
                 }
-                const fullText = finalizedChunks.join(' ') + (interim ? ' ' + interim : '');
-                transcriptEl.innerText = `Gesprochen: "${fullText}"`;
+                transcriptEl.innerText = `Erkannt: "${recordedSpeechResult + interim}"`;
             };
 
             recognition.onerror = function(event) {
-                console.warn("Spracherkennungs-Hinweis:", event.error);
+                console.warn("Spracherkennungs-Fehler:", event.error);
             };
 
             recognition.onend = function() {
-                if (isRecording) {
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        console.error("Neustart fehlgeschlagen", e);
-                    }
+                // Wenn die Aufnahme natürlich stoppt, Text direkt verarbeiten falls vorhanden
+                if (recordedSpeechResult.trim().length > 0) {
+                    stopVoiceRecordingManual();
                 }
             };
 
@@ -339,13 +328,12 @@
         }
 
         function stopVoiceRecordingManual() {
-            isRecording = false;
             if (recognition) {
                 recognition.stop();
             }
             document.getElementById('voice-overlay').classList.add('hidden');
             
-            const cleanText = finalizedChunks.join(' ').trim();
+            const cleanText = recordedSpeechResult.trim();
             if (cleanText.length > 0) {
                 parseAndSaveVoiceCatch(cleanText);
             } else {
@@ -354,16 +342,7 @@
         }
 
         function parseAndSaveVoiceCatch(text) {
-            // Bereinige evtl. doppelte Wörter direkt im Gesamttext
-            const wordsArray = text.split(/\s+/);
-            const uniqueWords = [];
-            for (let i = 0; i < wordsArray.length; i++) {
-                if (i === 0 || wordsArray[i].toLowerCase() !== wordsArray[i - 1].toLowerCase()) {
-                    uniqueWords.push(wordsArray[i]);
-                }
-            }
-            const cleanText = uniqueWords.join(' ');
-            const lowerText = cleanText.toLowerCase();
+            const lowerText = text.toLowerCase();
             
             const possibleSpecies = ['zander', 'hecht', 'barsch', 'forelle', 'karpfen', 'wels', 'rapfen', 'alant', 'döbel'];
             let foundSpecies = 'Unbekannt';
@@ -373,23 +352,24 @@
                     break;
                 }
             }
-            if (foundSpecies === 'Unbekannt' && uniqueWords.length > 0) {
-                foundSpecies = uniqueWords[0].charAt(0).toUpperCase() + uniqueWords[0].slice(1);
+            if (foundSpecies === 'Unbekannt') {
+                const words = text.trim().split(' ');
+                foundSpecies = words[0].charAt(0).toUpperCase() + words[0].slice(1);
             }
 
             let lengthVal = null;
             const cmRegex = /(\d+[\.,]?\d*)\s*cm/i;
-            const matchCm = cleanText.match(cmRegex);
+            const matchCm = text.match(cmRegex);
             if (matchCm) {
                 lengthVal = parseFloat(matchCm[1].replace(',', '.'));
             } else {
-                const lengthMatch = cleanText.match(/(\d+[\.,]?\d*)/);
+                const lengthMatch = text.match(/(\d+[\.,]?\d*)/);
                 if (lengthMatch) lengthVal = parseFloat(lengthMatch[1].replace(',', '.'));
             }
 
             let weightVal = null;
-            const kgMatch = cleanText.match(/(\d+[\.,]?\d*)\s*kg/i);
-            const gMatch = cleanText.match(/(\d+[\.,]?\d*)\s*g(ramm)?/i);
+            const kgMatch = text.match(/(\d+[\.,]?\d*)\s*kg/i);
+            const gMatch = text.match(/(\d+[\.,]?\d*)\s*g(ramm)?/i);
             if (kgMatch) {
                 weightVal = parseFloat(kgMatch[1].replace(',', '.'));
             } else if (gMatch) {
@@ -399,15 +379,13 @@
             let baitVal = '';
             const baitIndex = lowerText.indexOf('köder');
             if (baitIndex !== -1) {
-                baitVal = cleanText.substring(baitIndex + 5).trim();
+                baitVal = text.substring(baitIndex + 5).trim();
             } else {
-                // Alternativ nach Schlagwörtern wie Gummifisch / Wobbler suchen
-                const baits = ['gummifisch', 'wobbler', 'spinner', 'blinker', 'jig', 'drop-shot', 'tackle'];
+                const baits = ['gummifisch', 'wobbler', 'spinner', 'blinker', 'jig', 'drop-shot'];
                 for (const b of baits) {
                     if (lowerText.includes(b)) {
-                        // Nimm das Wort und ggf. das Wort davor (z.B. "grüner Gummifisch")
                         const idx = lowerText.indexOf(b);
-                        baitVal = cleanText.substring(Math.max(0, idx - 10)).trim();
+                        baitVal = text.substring(Math.max(0, idx - 10)).trim();
                         break;
                     }
                 }
@@ -423,7 +401,7 @@
                 location: `${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)} (GPS)`,
                 bait: baitVal,
                 datetime: getLocalDateTimeString(),
-                notes: `Sprachnotiz: "${cleanText}"`
+                notes: `Sprachnotiz: "${text}"`
             };
 
             catches.unshift(data);
@@ -434,7 +412,10 @@
             renderStats();
             plotCatchMarkers();
 
-            alert(`Fang per Sprache erfasst:\nArt: ${foundSpecies}\nLänge: ${lengthVal ? lengthVal + ' cm' : 'k.A.'}\nGewicht: ${weightVal ? weightVal + ' kg' : 'k.A.'}\nKöder: ${baitVal || 'k.A.'}`);
+            // Direkt auf die Karte wechseln und auf den neuen Fang zentrieren
+            jumpToLocation(currentPosition.lat, currentPosition.lng);
+
+            alert(`Fang per Sprache erfasst & auf Karte markiert:\n${foundSpecies}${lengthVal ? ', ' + lengthVal + ' cm' : ''}`);
         }
 
         function switchView(view) {
@@ -594,8 +575,9 @@
             catches.forEach(c => {
                 if (c.lat && c.lng) {
                     const marker = L.marker([c.lat, c.lng]).addTo(map);
-                    marker.bindPopup(`<b>${c.species}</b><br>${c.length ? c.length + ' cm' : ''}`);
+                    marker.bindPopup(`<b>${c.species}</b><br>${c.length ? c.length + ' cm' : ''}<br><a href="#" onclick="openModalEdit('${c.id}'); return false;" style="color: #0ea5e9; text-decoration: underline;">Details öffnen</a>`);
                     marker.on('click', () => {
+                        // Klick auf den Marker öffnet direkt das Bearbeitungsfenster (Detailansicht)
                         openModalEdit(c.id);
                     });
                     catchMarkers.push(marker);
