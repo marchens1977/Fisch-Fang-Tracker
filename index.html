@@ -39,10 +39,16 @@
             <h1 class="text-3xl font-extrabold tracking-tight drop-shadow-md">Fischfang Tracker</h1>
             <p class="text-sm text-neutral-300 drop-shadow">designed by MZ-Fishing</p>
         </div>
-        <button onclick="startApp()" class="w-full max-w-xs bg-white text-black font-semibold py-3.5 px-6 rounded-2xl shadow-xl hover:bg-neutral-200 transition flex items-center justify-center space-x-2">
-            <i data-lucide="map" class="w-5 h-5"></i>
-            <span>Karte öffnen & Starten</span>
-        </button>
+        <div class="w-full max-w-xs space-y-3">
+            <button onclick="startApp()" class="w-full bg-white text-black font-semibold py-3.5 px-6 rounded-2xl shadow-xl hover:bg-neutral-200 transition flex items-center justify-center space-x-2">
+                <i data-lucide="map" class="w-5 h-5"></i>
+                <span>Karte öffnen & Starten</span>
+            </button>
+            <button onclick="startVoiceRecording()" class="w-full bg-neutral-900 border border-neutral-700 text-white font-medium py-3 px-6 rounded-2xl shadow-lg hover:bg-neutral-800 transition flex items-center justify-center space-x-2">
+                <i data-lucide="mic" class="w-5 h-5 text-red-500 animate-pulse"></i>
+                <span id="voice-btn-text">Fang per Sprache erfassen</span>
+            </button>
+        </div>
     </div>
 
     <!-- Hauptanwendung -->
@@ -55,6 +61,7 @@
                     <h1 class="text-base font-bold tracking-wide">Fish Fang Tracker</h1>
                 </div>
                 <div class="flex space-x-2">
+                    <button onclick="startVoiceRecording()" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition text-red-500" title="Spracheingabe"><i data-lucide="mic" class="w-5 h-5"></i></button>
                     <button onclick="switchView('map')" id="btn-view-map" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="map" class="w-5 h-5"></i></button>
                     <button onclick="switchView('list')" id="btn-view-list" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="list" class="w-5 h-5"></i></button>
                     <button onclick="switchView('stats')" id="btn-view-stats" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></button>
@@ -72,7 +79,7 @@
                     <button onclick="getUserLocation(true)" class="text-white underline hover:text-neutral-300">Standort zentrieren</button>
                 </div>
                 <div id="osm-map" class="w-full h-[65vh] rounded-2xl border border-neutral-800 shadow-inner z-10 dark-map"></div>
-                <p class="text-xs text-center text-neutral-500">Tippe auf eine beliebige Stelle in der Karte, um dort einen Fang zu erfassen.</p>
+                <p class="text-xs text-center text-neutral-500">Tippe auf die Karte oder nutze das Mikrofon für einen Sprachfang.</p>
             </div>
 
             <!-- Ansicht: Fänge Liste mit Export / Import -->
@@ -119,6 +126,15 @@
             </div>
 
         </main>
+    </div>
+
+    <!-- Sprach-Feedback Overlay -->
+    <div id="voice-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div class="w-20 h-20 bg-neutral-900 border border-neutral-700 rounded-full flex items-center justify-center animate-bounce">
+            <i data-lucide="mic" class="w-10 h-10 text-red-500"></i>
+        </div>
+        <h2 class="text-xl font-bold">Höre zu...</h2>
+        <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs">"Zander, 68 cm, Köder Gummifisch"</p>
     </div>
 
     <!-- Modal für neuen Fang / Bearbeiten -->
@@ -258,6 +274,118 @@
             } else {
                 statusEl.innerText = 'Geolocation wird nicht unterstützt.';
             }
+        }
+
+        function startVoiceRecording() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('Spracherkennung wird von diesem Browser leider nicht unterstützt. Bitte nutze Google Chrome.');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'de-DE';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            const overlay = document.getElementById('voice-overlay');
+            const transcriptEl = document.getElementById('voice-transcript');
+            overlay.classList.remove('hidden');
+            transcriptEl.innerText = "Höre zu... (z.B. 'Barsch, 32 cm, Köder Gummifisch')";
+
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const speechResult = event.results[0][0].transcript;
+                transcriptEl.innerText = `Erkannt: "${speechResult}"`;
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    parseAndSaveVoiceCatch(speechResult);
+                }, 1000);
+            };
+
+            recognition.onerror = function(event) {
+                overlay.classList.add('hidden');
+                alert('Spracherkennung fehlgeschlagen. Bitte versuche es erneut.');
+            };
+
+            recognition.onend = function() {
+                setTimeout(() => overlay.classList.add('hidden'), 1500);
+            };
+        }
+
+        function parseAndSaveVoiceCatch(text) {
+            const lowerText = text.toLowerCase();
+            
+            // Bekannte Arten erkennen
+            const possibleSpecies = ['zander', 'hecht', 'barsch', 'forelle', 'karpfen', 'wels', 'rapfen', 'alant', 'döbel'];
+            let foundSpecies = 'Unbekannt';
+            for (const s of possibleSpecies) {
+                if (lowerText.includes(s)) {
+                    foundSpecies = s.charAt(0).toUpperCase() + s.slice(1);
+                    break;
+                }
+            }
+            if (foundSpecies === 'Unbekannt') {
+                // Nimm das erste Wort als Art, falls keine Liste greift
+                const words = text.trim().split(' ');
+                foundSpecies = words[0].charAt(0).toUpperCase() + words[0].slice(1);
+            }
+
+            // Länge extrahieren (Zahl gefolgt von cm oder nur Zahl vor cm)
+            let lengthVal = null;
+            const lengthMatch = text.match(/(\d+[\.,]?\d*)\s*(cm|entimeter)?/i);
+            if (lengthMatch) {
+                // Suche nach Zentimeter Angabe im Text
+                const cmRegex = /(\d+[\.,]?\d*)\s*cm/i;
+                const matchCm = text.match(cmRegex);
+                if (matchCm) {
+                    lengthVal = parseFloat(matchCm[1].replace(',', '.'));
+                } else {
+                    lengthVal = parseFloat(lengthMatch[1].replace(',', '.'));
+                }
+            }
+
+            // Gewicht extrahieren (kg oder gramm)
+            let weightVal = null;
+            const kgMatch = text.match(/(\d+[\.,]?\d*)\s*kg/i);
+            const gMatch = text.match(/(\d+[\.,]?\d*)\s*g(ramm)?/i);
+            if (kgMatch) {
+                weightVal = parseFloat(kgMatch[1].replace(',', '.'));
+            } else if (gMatch) {
+                weightVal = parseFloat(gMatch[1].replace(',', '.')) / 1000; // Gramm in kg umrechnen
+            }
+
+            // Köder extrahieren (alles nach dem Wort "Köder")
+            let baitVal = '';
+            const baitIndex = lowerText.indexOf('köder');
+            if (baitIndex !== -1) {
+                baitVal = text.substring(baitIndex + 5).trim();
+            }
+
+            // Datensatz zusammenstellen
+            const data = {
+                id: Date.now().toString(),
+                species: foundSpecies,
+                length: lengthVal,
+                weight: weightVal,
+                lat: currentPosition.lat,
+                lng: currentPosition.lng,
+                location: `${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)} (GPS)`,
+                bait: baitVal,
+                datetime: getLocalDateTimeString(),
+                notes: `Sprachnotiz: "${text}"`
+            };
+
+            catches.unshift(data);
+            localStorage.setItem('fish_catches', JSON.stringify(catches));
+            
+            updateSpeciesFilter();
+            renderCatches();
+            renderStats();
+            plotCatchMarkers();
+
+            alert(`Fang per Sprache erfasst:\n${foundSpecies}${lengthVal ? ', ' + lengthVal + ' cm' : ''}${weightVal ? ', ' + weightVal + ' kg' : ''}`);
         }
 
         function switchView(view) {
@@ -465,7 +593,7 @@
                         <div>
                             <span class="text-xs text-white font-semibold uppercase tracking-wider">${c.species}</span>
                             <div class="flex items-baseline space-x-2 mt-0.5">
-                                ${c.length ? `<span class="text-lg font-bold">${c.length} cm</span>` : ''}
+                                ${c.length ? `<span class="text-xs text-neutral-400 font-bold">${c.length} cm</span>` : ''}
                                 ${c.weight ? `<span class="text-xs text-neutral-400">(${c.weight} kg)</span>` : ''}
                             </div>
                         </div>
@@ -496,7 +624,7 @@
                 counts[c.species] = (counts[c.species] || 0) + 1;
             });
 
-            const sortedSpecies = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const sortedSpecies = Object.entries(counts).sort((a, b) => b[1] - al1);
             const speciesListContainer = document.getElementById('stat-species-list');
 
             if (sortedSpecies.length === 0) {
