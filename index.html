@@ -133,9 +133,9 @@
         <div class="w-20 h-20 bg-neutral-900 border border-neutral-700 rounded-full flex items-center justify-center animate-bounce">
             <i data-lucide="mic" class="w-10 h-10 text-red-500"></i>
         </div>
-        <h2 class="text-xl font-bold">Höre zu (kannst Pausen machen)...</h2>
-        <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs">Srich deinen Fang ein...</p>
-        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-white text-black font-semibold py-2 px-6 rounded-xl text-sm">Fertig / Speichern</button>
+        <h2 class="text-xl font-bold">Aufnahme läuft...</h2>
+        <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs min-h-[3rem]">Sprich ganz in Ruhe deinen Fang ein...</p>
+        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-white text-black font-semibold py-3 px-8 rounded-2xl text-sm shadow-xl hover:bg-neutral-200 transition">Fertig & Speichern</button>
     </div>
 
     <!-- Modal für neuen Fang / Bearbeiten -->
@@ -213,7 +213,8 @@
         let catches = JSON.parse(localStorage.getItem('fish_catches')) || [];
         let mapInitialized = false;
         let recognition;
-        let finalTranscript = '';
+        let fullTranscript = '';
+        let isRecording = false;
 
         function startApp() {
             document.getElementById('screen-welcome').classList.add('hidden');
@@ -288,45 +289,60 @@
 
             recognition = new SpeechRecognition();
             recognition.lang = 'de-DE';
-            recognition.continuous = true; // Erlaubt Pausen, stoppt nicht sofort
+            recognition.continuous = true;
             recognition.interimResults = true;
 
-            finalTranscript = '';
+            fullTranscript = '';
+            isRecording = true;
+
             const overlay = document.getElementById('voice-overlay');
             const transcriptEl = document.getElementById('voice-transcript');
             overlay.classList.remove('hidden');
-            transcriptEl.innerText = "Höre zu... Sprich in Ruhe (z.B. 'Zander, 68 cm')";
+            transcriptEl.innerText = "Höre zu... Sprich deinen Fang ein.";
 
             recognition.onresult = function(event) {
                 let interim = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript + ' ';
+                        fullTranscript += event.results[i][0].transcript + ' ';
                     } else {
                         interim += event.results[i][0].transcript;
                     }
                 }
-                transcriptEl.innerText = `Gesprochen: "${finalTranscript + interim}"`;
+                transcriptEl.innerText = `Gesprochen: "${fullTranscript + interim}"`;
             };
 
             recognition.onerror = function(event) {
-                console.error("Sprachfehler:", event.error);
+                console.warn("Spracherkennungs-Hinweis:", event.error);
             };
 
+            // Automatischer Neustart falls der Browser die Session nach einer Pause beendet, solange der User nicht auf "Fertig" geklickt hat
             recognition.onend = function() {
-                // Falls die Aufnahme unerwartet stoppt, aber noch kein Text da ist, nichts tun
+                if (isRecording) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error("Neustart fehlgeschlagen", e);
+                    }
+                }
             };
 
-            recognition.start();
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error("Start fehlgeschlagen", e);
+            }
         }
 
         function stopVoiceRecordingManual() {
+            isRecording = false;
             if (recognition) {
                 recognition.stop();
             }
             document.getElementById('voice-overlay').classList.add('hidden');
-            if (finalTranscript.trim().length > 0) {
-                parseAndSaveVoiceCatch(finalTranscript);
+            
+            if (fullTranscript.trim().length > 0) {
+                parseAndSaveVoiceCatch(fullTranscript);
             } else {
                 alert('Es wurde keine Sprache erkannt.');
             }
