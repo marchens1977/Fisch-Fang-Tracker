@@ -46,7 +46,7 @@
             </button>
             <button onclick="startVoiceRecording()" class="w-full bg-neutral-900 border border-neutral-700 text-white font-medium py-3 px-6 rounded-2xl shadow-lg hover:bg-neutral-800 transition flex items-center justify-center space-x-2">
                 <i data-lucide="mic" class="w-5 h-5 text-red-500 animate-pulse"></i>
-                <span id="voice-btn-text">Fang per Sprache erfassen</span>
+                <span>Fang per Sprache erfassen</span>
             </button>
         </div>
     </div>
@@ -133,8 +133,9 @@
         <div class="w-20 h-20 bg-neutral-900 border border-neutral-700 rounded-full flex items-center justify-center animate-bounce">
             <i data-lucide="mic" class="w-10 h-10 text-red-500"></i>
         </div>
-        <h2 class="text-xl font-bold">Höre zu...</h2>
-        <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs">"Zander, 68 cm, Köder Gummifisch"</p>
+        <h2 class="text-xl font-bold">Höre zu (kannst Pausen machen)...</h2>
+        <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs">Srich deinen Fang ein...</p>
+        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-white text-black font-semibold py-2 px-6 rounded-xl text-sm">Fertig / Speichern</button>
     </div>
 
     <!-- Modal für neuen Fang / Bearbeiten -->
@@ -211,6 +212,8 @@
         let currentPosition = { lat: 50.0, lng: 8.27 }; // Standard Mainz
         let catches = JSON.parse(localStorage.getItem('fish_catches')) || [];
         let mapInitialized = false;
+        let recognition;
+        let finalTranscript = '';
 
         function startApp() {
             document.getElementById('screen-welcome').classList.add('hidden');
@@ -283,41 +286,55 @@
                 return;
             }
 
-            const recognition = new SpeechRecognition();
+            recognition = new SpeechRecognition();
             recognition.lang = 'de-DE';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
+            recognition.continuous = true; // Erlaubt Pausen, stoppt nicht sofort
+            recognition.interimResults = true;
 
+            finalTranscript = '';
             const overlay = document.getElementById('voice-overlay');
             const transcriptEl = document.getElementById('voice-transcript');
             overlay.classList.remove('hidden');
-            transcriptEl.innerText = "Höre zu... (z.B. 'Barsch, 32 cm, Köder Gummifisch')";
-
-            recognition.start();
+            transcriptEl.innerText = "Höre zu... Sprich in Ruhe (z.B. 'Zander, 68 cm')";
 
             recognition.onresult = function(event) {
-                const speechResult = event.results[0][0].transcript;
-                transcriptEl.innerText = `Erkannt: "${speechResult}"`;
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    parseAndSaveVoiceCatch(speechResult);
-                }, 1000);
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                transcriptEl.innerText = `Gesprochen: "${finalTranscript + interim}"`;
             };
 
             recognition.onerror = function(event) {
-                overlay.classList.add('hidden');
-                alert('Spracherkennung fehlgeschlagen. Bitte versuche es erneut.');
+                console.error("Sprachfehler:", event.error);
             };
 
             recognition.onend = function() {
-                setTimeout(() => overlay.classList.add('hidden'), 1500);
+                // Falls die Aufnahme unerwartet stoppt, aber noch kein Text da ist, nichts tun
             };
+
+            recognition.start();
+        }
+
+        function stopVoiceRecordingManual() {
+            if (recognition) {
+                recognition.stop();
+            }
+            document.getElementById('voice-overlay').classList.add('hidden');
+            if (finalTranscript.trim().length > 0) {
+                parseAndSaveVoiceCatch(finalTranscript);
+            } else {
+                alert('Es wurde keine Sprache erkannt.');
+            }
         }
 
         function parseAndSaveVoiceCatch(text) {
             const lowerText = text.toLowerCase();
             
-            // Bekannte Arten erkennen
             const possibleSpecies = ['zander', 'hecht', 'barsch', 'forelle', 'karpfen', 'wels', 'rapfen', 'alant', 'döbel'];
             let foundSpecies = 'Unbekannt';
             for (const s of possibleSpecies) {
@@ -327,43 +344,35 @@
                 }
             }
             if (foundSpecies === 'Unbekannt') {
-                // Nimm das erste Wort als Art, falls keine Liste greift
                 const words = text.trim().split(' ');
                 foundSpecies = words[0].charAt(0).toUpperCase() + words[0].slice(1);
             }
 
-            // Länge extrahieren (Zahl gefolgt von cm oder nur Zahl vor cm)
             let lengthVal = null;
-            const lengthMatch = text.match(/(\d+[\.,]?\d*)\s*(cm|entimeter)?/i);
-            if (lengthMatch) {
-                // Suche nach Zentimeter Angabe im Text
-                const cmRegex = /(\d+[\.,]?\d*)\s*cm/i;
-                const matchCm = text.match(cmRegex);
-                if (matchCm) {
-                    lengthVal = parseFloat(matchCm[1].replace(',', '.'));
-                } else {
-                    lengthVal = parseFloat(lengthMatch[1].replace(',', '.'));
-                }
+            const cmRegex = /(\d+[\.,]?\d*)\s*cm/i;
+            const matchCm = text.match(cmRegex);
+            if (matchCm) {
+                lengthVal = parseFloat(matchCm[1].replace(',', '.'));
+            } else {
+                const lengthMatch = text.match(/(\d+[\.,]?\d*)/);
+                if (lengthMatch) lengthVal = parseFloat(lengthMatch[1].replace(',', '.'));
             }
 
-            // Gewicht extrahieren (kg oder gramm)
             let weightVal = null;
             const kgMatch = text.match(/(\d+[\.,]?\d*)\s*kg/i);
             const gMatch = text.match(/(\d+[\.,]?\d*)\s*g(ramm)?/i);
             if (kgMatch) {
                 weightVal = parseFloat(kgMatch[1].replace(',', '.'));
             } else if (gMatch) {
-                weightVal = parseFloat(gMatch[1].replace(',', '.')) / 1000; // Gramm in kg umrechnen
+                weightVal = parseFloat(gMatch[1].replace(',', '.')) / 1000;
             }
 
-            // Köder extrahieren (alles nach dem Wort "Köder")
             let baitVal = '';
             const baitIndex = lowerText.indexOf('köder');
             if (baitIndex !== -1) {
                 baitVal = text.substring(baitIndex + 5).trim();
             }
 
-            // Datensatz zusammenstellen
             const data = {
                 id: Date.now().toString(),
                 species: foundSpecies,
@@ -374,7 +383,7 @@
                 location: `${currentPosition.lat.toFixed(4)}, ${currentPosition.lng.toFixed(4)} (GPS)`,
                 bait: baitVal,
                 datetime: getLocalDateTimeString(),
-                notes: `Sprachnotiz: "${text}"`
+                notes: `Sprachnotiz: "${text.trim()}"`
             };
 
             catches.unshift(data);
@@ -624,7 +633,7 @@
                 counts[c.species] = (counts[c.species] || 0) + 1;
             });
 
-            const sortedSpecies = Object.entries(counts).sort((a, b) => b[1] - al1);
+            const sortedSpecies = Object.entries(counts).sort((a, b) => b[1] - a[1]);
             const speciesListContainer = document.getElementById('stat-species-list');
 
             if (sortedSpecies.length === 0) {
