@@ -2,8 +2,9 @@
 <html lang="de" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fish Fang Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <title>Fischfang Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -26,10 +27,14 @@
         .dark-map .leaflet-layer {
             filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
         }
+        .nav-btn { color: #737373; transition: color .15s; }
+        .nav-btn.active { color: #ffffff; }
+        .bar-fill { background: linear-gradient(90deg, #3b82f6, #0ea5e9); }
     </style>
 </head>
 <body class="bg-darkBg text-white min-h-screen font-sans">
 
+    <!-- Startbildschirm -->
     <div id="screen-welcome" class="fixed inset-0 z-50 flex flex-col items-center justify-between p-6 text-center bg-black bg-cover bg-center" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.9)), url('Startbild.jpg');">
         <div></div>
         <div class="space-y-3">
@@ -40,97 +45,125 @@
         <div class="w-full max-w-xs space-y-3">
             <button onclick="startApp()" class="w-full bg-white text-black font-semibold py-3.5 px-6 rounded-2xl shadow-xl hover:bg-neutral-200 transition flex items-center justify-center space-x-2">
                 <i data-lucide="map" class="w-5 h-5"></i>
-                <span>Karte öffnen & Starten</span>
+                <span>Karte öffnen &amp; Starten</span>
             </button>
         </div>
     </div>
 
-    <div id="app-container" class="hidden pb-20">
-        <header class="bg-cardBg border-b border-neutral-800 sticky top-0 z-40 px-4 py-3">
-            <div class="max-w-md mx-auto flex justify-between items-center">
-                <div class="flex items-center space-x-2">
-                    <i data-lucide="fish" class="text-white w-6 h-6"></i>
-                    <h1 class="text-base font-bold tracking-wide">Fish Fang Tracker</h1>
+    <!-- Hauptbereich -->
+    <div id="app-container" class="hidden pb-32">
+        <header class="bg-cardBg/95 backdrop-blur border-b border-neutral-800 sticky top-0 z-40 px-4 py-3">
+            <div class="max-w-md mx-auto flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/40 flex items-center justify-center">
+                    <i data-lucide="fish" class="text-blue-400 w-5 h-5"></i>
                 </div>
-                <div class="flex space-x-2">
-                    <button onclick="startVoiceRecording()" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition text-red-500" title="Spracheingabe"><i data-lucide="mic" class="w-5 h-5"></i></button>
-                    <button onclick="switchView('map')" id="btn-view-map" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="map" class="w-5 h-5"></i></button>
-                    <button onclick="switchView('list')" id="btn-view-list" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="list" class="w-5 h-5"></i></button>
-                    <button onclick="switchView('stats')" id="btn-view-stats" class="p-2 bg-neutral-900 border border-neutral-800 rounded-xl hover:bg-neutral-800 transition"><i data-lucide="bar-chart-2" class="w-5 h-5"></i></button>
+                <div>
+                    <h1 class="text-base font-bold leading-tight">Fischfang Tracker</h1>
+                    <p class="text-[11px] text-neutral-500 leading-tight">designed by MZ-Fishing</p>
                 </div>
             </div>
         </header>
 
         <main class="max-w-md mx-auto p-4 space-y-4">
+            <!-- Karte -->
             <div id="view-map" class="space-y-3">
                 <div class="bg-cardBg border border-neutral-800 rounded-2xl p-3 flex justify-between items-center text-xs text-neutral-400">
                     <span id="map-status">GPS-Standort wird gesucht...</span>
                     <button onclick="centerOnUser()" class="text-white underline hover:text-neutral-300">Standort zentrieren</button>
                 </div>
                 <div id="osm-map" class="w-full h-[65vh] rounded-2xl border border-neutral-800 shadow-inner z-10 dark-map"></div>
-                <p class="text-xs text-center text-neutral-500">Tippe auf die Karte oder nutze das Mikrofon für einen Sprachfang.</p>
+                <p class="text-xs text-center text-neutral-500">Tippe auf die Karte, nutze das Mikrofon oder den Knopf „+ Fang“ in der Liste.</p>
             </div>
 
+            <!-- Liste -->
             <div id="view-list" class="hidden space-y-4">
-                <div class="flex justify-between items-center px-1">
+                <div class="flex justify-between items-center gap-2 px-1">
                     <span id="catch-count" class="text-xs text-neutral-400 font-medium">0 Fänge erfasst</span>
-                    <select id="filter-species" onchange="renderCatches()" class="bg-cardBg border border-neutral-800 text-xs rounded-xl px-2.5 py-1.5 text-white focus:outline-none focus:border-white">
-                        <option value="">Alle Arten</option>
-                    </select>
+                    <div class="flex items-center gap-2">
+                        <select id="filter-species" onchange="renderCatches()" class="bg-cardBg border border-neutral-800 text-xs rounded-xl px-2.5 py-1.5 text-white focus:outline-none focus:border-white">
+                            <option value="">Alle Arten</option>
+                        </select>
+                        <button onclick="openModalNew()" class="bg-white text-black text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-neutral-200 transition">+ Fang</button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="exportData()" class="bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-xs text-white font-medium py-2 px-3 rounded-xl transition flex items-center justify-center space-x-1.5">
                         <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                        <span>Exportieren</span>
+                        <span>Sichern (Exportieren)</span>
                     </button>
                     <label class="bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-xs text-white font-medium py-2 px-3 rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer">
                         <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                        <span>Importieren</span>
-                        <input type="file" id="import-file" accept=".json" onchange="importData(event)" class="hidden">
+                        <span>Hinzufügen (Importieren)</span>
+                        <input type="file" id="import-file" accept=".json,application/json" onchange="importData(event)" class="hidden">
                     </label>
                 </div>
+                <p id="backup-status" class="text-[11px] text-neutral-500 px-1"></p>
 
                 <div id="catches-container" class="space-y-3"></div>
             </div>
 
+            <!-- Statistik -->
             <div id="view-stats" class="hidden space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-cardBg p-4 rounded-2xl border border-neutral-800 shadow-sm">
                         <span class="text-xs text-neutral-400">Gesamtfänge</span>
-                        <h2 id="stat-total" class="text-2xl font-bold text-white mt-1">0</h2>
+                        <h2 id="stat-total" class="text-3xl font-bold text-white mt-1">0</h2>
                     </div>
                     <div class="bg-cardBg p-4 rounded-2xl border border-neutral-800 shadow-sm">
                         <span class="text-xs text-neutral-400">Größter Fisch</span>
-                        <h2 id="stat-biggest" class="text-2xl font-bold text-white mt-1">0 cm</h2>
+                        <h2 id="stat-biggest" class="text-3xl font-bold text-white mt-1">0 cm</h2>
                     </div>
                 </div>
                 <div class="bg-cardBg p-4 rounded-2xl border border-neutral-800 shadow-sm space-y-3">
                     <h3 class="text-sm font-semibold text-white border-b border-neutral-800 pb-2">Häufigste Arten</h3>
-                    <div id="stat-species-list" class="space-y-2 text-sm text-neutral-400"></div>
+                    <div id="stat-species-list" class="space-y-3 text-sm text-neutral-400"></div>
                 </div>
             </div>
         </main>
     </div>
 
+    <!-- Untere Navigation -->
+    <nav id="bottom-nav" class="hidden fixed bottom-0 inset-x-0 z-40 bg-cardBg/95 backdrop-blur border-t border-neutral-800" style="padding-bottom: env(safe-area-inset-bottom);">
+        <div class="max-w-md mx-auto grid grid-cols-4 items-end px-2 py-2 text-[11px]">
+            <button id="nav-map" onclick="switchView('map')" class="nav-btn flex flex-col items-center gap-1 py-1">
+                <i data-lucide="map" class="w-5 h-5"></i><span>Karte</span>
+            </button>
+            <button id="nav-list" onclick="switchView('list')" class="nav-btn flex flex-col items-center gap-1 py-1">
+                <i data-lucide="list" class="w-5 h-5"></i><span>Liste</span>
+            </button>
+            <button id="nav-stats" onclick="switchView('stats')" class="nav-btn flex flex-col items-center gap-1 py-1">
+                <i data-lucide="bar-chart-2" class="w-5 h-5"></i><span>Statistik</span>
+            </button>
+            <div class="flex flex-col items-center">
+                <button onclick="startVoiceRecording()" class="-mt-7 w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-xl flex items-center justify-center transition" title="Sprachfang">
+                    <i data-lucide="mic" class="w-6 h-6"></i>
+                </button>
+                <span class="text-neutral-400 mt-1">Sprache</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sprachaufnahme -->
     <div id="voice-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div class="w-20 h-20 bg-neutral-900 border border-neutral-700 rounded-full flex items-center justify-center animate-bounce">
+        <div class="w-20 h-20 bg-neutral-900 border border-neutral-700 rounded-full flex items-center justify-center animate-pulse">
             <i data-lucide="mic" class="w-10 h-10 text-red-500"></i>
         </div>
         <h2 class="text-xl font-bold">Zuhören aktiv...</h2>
         <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs min-h-[3rem]">Sprich jetzt deinen Satz. Die Aufnahme stoppt erst beim Klick auf Beenden.</p>
-        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-white text-black font-semibold py-3 px-8 rounded-2xl text-sm shadow-xl hover:bg-neutral-200 transition">Aufnahme beenden & Speichern</button>
+        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-white text-black font-semibold py-3 px-8 rounded-2xl text-sm shadow-xl hover:bg-neutral-200 transition">Aufnahme beenden &amp; Speichern</button>
     </div>
 
-    <div id="catch-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <!-- Fang-Formular -->
+    <div id="catch-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="if (event.target === this) closeModal()">
         <div class="bg-cardBg w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border border-neutral-800 max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="p-4 border-b border-neutral-800 flex justify-between items-center">
                 <h2 id="modal-title" class="font-bold text-base">Fang erfassen</h2>
-                <button onclick="closeModal()" class="text-neutral-400 hover:text-white">
+                <button onclick="closeModal()" class="text-neutral-400 hover:text-white" aria-label="Schließen">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            
+
             <form id="catch-form" onsubmit="saveCatch(event)" class="p-4 overflow-y-auto space-y-4 flex-1">
                 <input type="hidden" id="catch-id">
                 <input type="hidden" id="latitude">
@@ -145,12 +178,13 @@
                         <option value="Barsch">
                         <option value="Forelle">
                         <option value="Karpfen">
+                        <option value="Wels">
                     </datalist>
                 </div>
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-400 mb-1">Länge (cm)</label>
-                    <input type="number" step="0.1" id="length" placeholder="z.B. 65" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    <input type="number" step="0.1" min="0" id="length" placeholder="z.B. 65" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
                 </div>
 
                 <div>
@@ -159,7 +193,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-neutral-400 mb-1">Datum & Uhrzeit</label>
+                    <label class="block text-xs font-medium text-neutral-400 mb-1">Datum &amp; Uhrzeit</label>
                     <input type="datetime-local" id="datetime" required class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
                 </div>
 
@@ -168,38 +202,71 @@
                     <textarea id="notes" rows="3" placeholder="Besonderheiten, Wassertiefe, Köder..." class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white resize-none"></textarea>
                 </div>
 
-                <div class="pt-2">
+                <div class="pt-2 space-y-2">
                     <button type="submit" class="w-full bg-white text-black font-semibold py-3 rounded-xl transition hover:bg-neutral-200">Fang speichern</button>
+                    <button type="button" id="btn-delete" onclick="deleteFromModal()" class="hidden w-full bg-neutral-900 border border-neutral-800 text-red-400 font-medium py-3 rounded-xl transition hover:bg-neutral-800">Fang löschen</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        // ---------- Grundeinstellungen & Daten ----------
+        const STORAGE_KEY = 'fish_catches';
+        const BACKUP_KEY = 'fish_last_export';
         let map;
         let userMarker;
         let catchMarkers = [];
-        let currentPosition = { lat: 50.0, lng: 8.27 }; 
-        let catches = JSON.parse(localStorage.getItem('fish_catches')) || [];
+        let currentPosition = { lat: 50.0, lng: 8.27 };
+        let catches = loadCatches();
         let mapInitialized = false;
         let geoWatchId;
         let isFirstLocationFound = false;
-        
+
         let recognition;
         let finalSpeechText = '';
         let isRecordingActive = false;
 
-        function startApp() {
-            document.getElementById('screen-welcome').classList.add('hidden');
-            document.getElementById('app-container').classList.remove('hidden');
-            initMap();
-            initData();
+        function loadCatches() {
+            try {
+                const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                return Array.isArray(data) ? data : [];
+            } catch (e) {
+                return [];
+            }
         }
 
-        function initData() {
+        function saveCatches() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(catches));
+        }
+
+        // Verhindert, dass eingegebene Texte als Code in der Seite ausgeführt werden
+        function esc(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[ch]));
+        }
+
+        function toNumberOrNull(value) {
+            const n = parseFloat(value);
+            return Number.isFinite(n) ? n : null;
+        }
+
+        function refreshAll() {
             updateSpeciesFilter();
             renderCatches();
             renderStats();
+            plotCatchMarkers();
+        }
+
+        // ---------- Start ----------
+        function startApp() {
+            document.getElementById('screen-welcome').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('bottom-nav').classList.remove('hidden');
+            initMap();
+            refreshAll();
+            setNav('map');
             lucide.createIcons();
         }
 
@@ -220,6 +287,7 @@
             plotCatchMarkers();
         }
 
+        // ---------- GPS ----------
         function startGPSWatch() {
             const statusEl = document.getElementById('map-status');
             if (navigator.geolocation) {
@@ -231,17 +299,17 @@
                             lng: position.coords.longitude
                         };
                         updateUserMarker();
-                        
+
                         if (!isFirstLocationFound) {
                             centerOnUser();
                             isFirstLocationFound = true;
                         }
 
                         const acc = position.coords.accuracy ? position.coords.accuracy.toFixed(0) : '??';
-                        statusEl.innerText = `GPS exakt (${acc}m)`;
+                        statusEl.innerText = `GPS exakt (${acc} m)`;
                     },
-                    (error) => {
-                        statusEl.innerText = 'GPS-Fehler. Überprüfe Berechtigungen.';
+                    () => {
+                        statusEl.innerText = 'GPS-Fehler. Bitte Standort-Berechtigung prüfen.';
                     },
                     { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
                 );
@@ -271,6 +339,7 @@
             }
         }
 
+        // ---------- Sprachfang ----------
         function startVoiceRecording() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -282,7 +351,7 @@
                 recognition = new SpeechRecognition();
                 recognition.lang = 'de-DE';
                 recognition.continuous = true;
-                recognition.interimResults = false; 
+                recognition.interimResults = false;
             }
 
             finalSpeechText = '';
@@ -291,22 +360,22 @@
             const overlay = document.getElementById('voice-overlay');
             const transcriptEl = document.getElementById('voice-transcript');
             overlay.classList.remove('hidden');
-            transcriptEl.innerText = "Höre zu... Sprich jetzt deinen Satz.";
+            transcriptEl.innerText = 'Höre zu... Sprich jetzt deinen Satz.';
 
-            recognition.onresult = function(event) {
+            recognition.onresult = function (event) {
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
                         finalSpeechText += event.results[i][0].transcript + ' ';
                     }
                 }
-                transcriptEl.innerText = `Erkannt: "${finalSpeechText.trim()}"`;
+                transcriptEl.innerText = `Erkannt: „${finalSpeechText.trim()}“`;
             };
 
-            recognition.onerror = function(event) {
-                console.warn("Spracherkennung blockiert oder Fehler:", event.error);
+            recognition.onerror = function (event) {
+                console.warn('Spracherkennung blockiert oder Fehler:', event.error);
             };
 
-            recognition.onend = function() {
+            recognition.onend = function () {
                 if (isRecordingActive) {
                     try {
                         recognition.start();
@@ -329,7 +398,7 @@
                 recognition.stop();
             }
             document.getElementById('voice-overlay').classList.add('hidden');
-            
+
             const rawText = finalSpeechText.trim();
             if (rawText.length > 0) {
                 parseAndSaveVoiceCatch(rawText);
@@ -348,7 +417,7 @@
             }
             const cleanText = uniqueWords.join(' ');
             const lowerText = cleanText.toLowerCase();
-            
+
             const possibleSpecies = ['zander', 'hecht', 'barsch', 'forelle', 'karpfen', 'wels', 'rapfen', 'alant', 'döbel'];
             let foundSpecies = 'Unbekannt';
             for (const s of possibleSpecies) {
@@ -357,15 +426,12 @@
                     break;
                 }
             }
-            if (foundSpecies === 'Unbekannt') {
-                if(uniqueWords.length > 0) {
-                    foundSpecies = uniqueWords[0].charAt(0).toUpperCase() + uniqueWords[0].slice(1);
-                }
+            if (foundSpecies === 'Unbekannt' && uniqueWords.length > 0) {
+                foundSpecies = uniqueWords[0].charAt(0).toUpperCase() + uniqueWords[0].slice(1);
             }
 
             let lengthVal = null;
-            const cmRegex = /(\d+[\.,]?\d*)\s*cm/i;
-            const matchCm = cleanText.match(cmRegex);
+            const matchCm = cleanText.match(/(\d+[\.,]?\d*)\s*cm/i);
             if (matchCm) {
                 lengthVal = parseFloat(matchCm[1].replace(',', '.'));
             } else {
@@ -380,10 +446,11 @@
                             lat: position.coords.latitude,
                             lng: position.coords.longitude
                         };
+                        updateUserMarker();
                         finalizeVoiceCatch(foundSpecies, lengthVal, cleanText);
                     },
-                    (error) => {
-                        console.warn("Konnte keinen neuen GPS-Fix holen, verwende letzten bekannten.");
+                    () => {
+                        console.warn('Konnte keinen neuen GPS-Fix holen, verwende letzten bekannten.');
                         finalizeVoiceCatch(foundSpecies, lengthVal, cleanText);
                     },
                     { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
@@ -406,36 +473,29 @@
             };
 
             catches.unshift(data);
-            localStorage.setItem('fish_catches', JSON.stringify(catches));
-            
-            updateSpeciesFilter();
-            renderCatches();
-            renderStats();
-            plotCatchMarkers();
+            saveCatches();
+            refreshAll();
 
             jumpToLocation(currentPosition.lat, currentPosition.lng);
             alert(`Fang per Sprache erfasst & auf Karte markiert:\nArt: ${foundSpecies}\nLänge: ${lengthVal ? lengthVal + ' cm' : 'k.A.'}`);
         }
 
+        // ---------- Navigation ----------
+        function setNav(view) {
+            ['map', 'list', 'stats'].forEach(v => {
+                document.getElementById('nav-' + v).classList.toggle('active', v === view);
+            });
+        }
+
         function switchView(view) {
-            const mapDiv = document.getElementById('view-map');
-            const listDiv = document.getElementById('view-list');
-            const statsDiv = document.getElementById('view-stats');
+            document.getElementById('view-map').classList.toggle('hidden', view !== 'map');
+            document.getElementById('view-list').classList.toggle('hidden', view !== 'list');
+            document.getElementById('view-stats').classList.toggle('hidden', view !== 'stats');
+            setNav(view);
 
-            mapDiv.classList.add('hidden');
-            listDiv.classList.add('hidden');
-            statsDiv.classList.add('hidden');
-
-            if (view === 'map') {
-                mapDiv.classList.remove('hidden');
-                if (map) map.invalidateSize();
-            } else if (view === 'list') {
-                listDiv.classList.remove('hidden');
-                renderCatches();
-            } else if (view === 'stats') {
-                statsDiv.classList.remove('hidden');
-                renderStats();
-            }
+            if (view === 'map' && map) map.invalidateSize();
+            if (view === 'list') renderCatches();
+            if (view === 'stats') renderStats();
             lucide.createIcons();
         }
 
@@ -446,41 +506,57 @@
             }
         }
 
+        // Klicks auf Fang-Karten und Popups (ohne Text im Code einzubauen)
+        document.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-action]');
+            if (!el) return;
+            const id = el.dataset.id;
+            switch (el.dataset.action) {
+                case 'edit':   openModalEdit(id); break;
+                case 'delete': deleteCatch(id); break;
+                case 'jump':   jumpToLocation(Number(el.dataset.lat), Number(el.dataset.lng)); break;
+            }
+        });
+
+        // ---------- Formular ----------
         function getLocalDateTimeString() {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
+            const pad = n => String(n).padStart(2, '0');
+            return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
         }
 
         function openModalForLocation(lat, lng) {
             document.getElementById('catch-modal').classList.remove('hidden');
             document.getElementById('modal-title').innerText = 'Fang erfassen';
+            document.getElementById('btn-delete').classList.add('hidden');
             document.getElementById('catch-form').reset();
             document.getElementById('catch-id').value = '';
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lng;
             document.getElementById('location').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
             document.getElementById('datetime').value = getLocalDateTimeString();
+            lucide.createIcons();
+        }
+
+        function openModalNew() {
+            openModalForLocation(currentPosition.lat, currentPosition.lng);
         }
 
         function openModalEdit(id) {
+            const item = catches.find(c => String(c.id) === String(id));
+            if (!item) return;
             document.getElementById('catch-modal').classList.remove('hidden');
             document.getElementById('modal-title').innerText = 'Fang bearbeiten';
-            const item = catches.find(c => c.id === id);
-            if (item) {
-                document.getElementById('catch-id').value = item.id;
-                document.getElementById('species').value = item.species;
-                document.getElementById('length').value = item.length || '';
-                document.getElementById('latitude').value = item.lat || '';
-                document.getElementById('longitude').value = item.lng || '';
-                document.getElementById('location').value = item.location || '';
-                document.getElementById('datetime').value = item.datetime || getLocalDateTimeString();
-                document.getElementById('notes').value = item.notes || '';
-            }
+            document.getElementById('btn-delete').classList.remove('hidden');
+            document.getElementById('catch-id').value = item.id;
+            document.getElementById('species').value = item.species || '';
+            document.getElementById('length').value = item.length ?? '';
+            document.getElementById('latitude').value = item.lat ?? '';
+            document.getElementById('longitude').value = item.lng ?? '';
+            document.getElementById('location').value = item.location || '';
+            document.getElementById('datetime').value = item.datetime || getLocalDateTimeString();
+            document.getElementById('notes').value = item.notes || '';
+            lucide.createIcons();
         }
 
         function closeModal() {
@@ -492,87 +568,135 @@
             const id = document.getElementById('catch-id').value;
             const data = {
                 id: id || Date.now().toString(),
-                species: document.getElementById('species').value,
-                length: parseFloat(document.getElementById('length').value) || null,
-                lat: parseFloat(document.getElementById('latitude').value) || null,
-                lng: parseFloat(document.getElementById('longitude').value) || null,
+                species: document.getElementById('species').value.trim(),
+                length: toNumberOrNull(document.getElementById('length').value),
+                lat: toNumberOrNull(document.getElementById('latitude').value),
+                lng: toNumberOrNull(document.getElementById('longitude').value),
                 location: document.getElementById('location').value,
                 datetime: document.getElementById('datetime').value,
                 notes: document.getElementById('notes').value
             };
 
             if (id) {
-                const index = catches.findIndex(c => c.id === id);
+                const index = catches.findIndex(c => String(c.id) === String(id));
                 if (index !== -1) catches[index] = data;
             } else {
                 catches.unshift(data);
             }
 
-            localStorage.setItem('fish_catches', JSON.stringify(catches));
+            saveCatches();
             closeModal();
-            updateSpeciesFilter();
-            renderCatches();
-            renderStats();
-            plotCatchMarkers();
-            
-            if (data.lat && data.lng) {
+            refreshAll();
+
+            if (data.lat !== null && data.lng !== null) {
                 jumpToLocation(data.lat, data.lng);
             }
         }
 
+        function deleteFromModal() {
+            const id = document.getElementById('catch-id').value;
+            if (!id) return;
+            closeModal();
+            deleteCatch(id);
+        }
+
         function deleteCatch(id) {
-            if (confirm('Möchtest du diesen Fang wirklich löschen?')) {
-                catches = catches.filter(c => c.id !== id);
-                localStorage.setItem('fish_catches', JSON.stringify(catches));
-                updateSpeciesFilter();
-                renderCatches();
-                renderStats();
-                plotCatchMarkers();
-            }
+            if (!confirm('Möchtest du diesen Fang wirklich löschen?')) return;
+            catches = catches.filter(c => String(c.id) !== String(id));
+            saveCatches();
+            refreshAll();
         }
 
+        // ---------- Sichern & Hinzufügen ----------
         function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(catches, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "fish_catches_backup.json");
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            const blob = new Blob([JSON.stringify(catches, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const today = getLocalDateTimeString().slice(0, 10);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fischfang_sicherung_${today}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+            localStorage.setItem(BACKUP_KEY, String(Date.now()));
+            renderBackupStatus();
         }
 
+        // Fügt Fänge aus einer Datei hinzu. Bestehende Fänge werden NICHT gelöscht.
         function importData(event) {
-            const fileReader = new FileReader();
-            if (event.target.files[0]) {
-                fileReader.readAsText(event.target.files[0], "UTF-8");
-                fileReader.onload = function(e) {
-                    try {
-                        const importedCatches = JSON.parse(e.target.result);
-                        if (Array.isArray(importedCatches)) {
-                            catches = importedCatches;
-                            localStorage.setItem('fish_catches', JSON.stringify(catches));
-                            updateSpeciesFilter();
-                            renderCatches();
-                            renderStats();
-                            plotCatchMarkers();
-                            alert('Fänge erfolgreich importiert!');
-                        } else {
-                            alert('Ungültiges Dateiformat.');
-                        }
-                    } catch (error) {
-                        alert('Fehler beim Einlesen der Datei.');
-                    }
-                };
+            const file = event.target.files[0];
+            event.target.value = ''; // erlaubt, dieselbe Datei später erneut zu wählen
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let imported;
+                try {
+                    imported = JSON.parse(e.target.result);
+                } catch (err) {
+                    alert('Die Datei konnte nicht gelesen werden. Bitte wähle eine Sicherungsdatei aus dem Fischfang Tracker.');
+                    return;
+                }
+                if (!Array.isArray(imported)) {
+                    alert('Ungültiges Dateiformat. Erwartet wird eine Sicherungsdatei aus dem Fischfang Tracker.');
+                    return;
+                }
+
+                const existingIds = new Set(catches.map(c => String(c.id)));
+                const newOnes = imported.filter(c => c && c.id != null && !existingIds.has(String(c.id)));
+
+                if (newOnes.length === 0) {
+                    alert('In dieser Datei gibt es keine neuen Fänge. Deine bisherigen Fänge bleiben unverändert.');
+                    return;
+                }
+
+                const ok = confirm(
+                    `${newOnes.length} neue Fänge gefunden.\n\n` +
+                    `Sie werden zu deinen ${catches.length} vorhandenen Fängen hinzugefügt. ` +
+                    `Nichts wird gelöscht.\n\nJetzt hinzufügen?`
+                );
+                if (!ok) return;
+
+                catches = [...catches, ...newOnes].sort((a, b) => String(b.datetime).localeCompare(String(a.datetime)));
+                saveCatches();
+                refreshAll();
+                alert(`${newOnes.length} Fänge hinzugefügt.`);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function renderBackupStatus() {
+            const el = document.getElementById('backup-status');
+            if (catches.length === 0) {
+                el.innerText = '';
+                return;
+            }
+            const last = Number(localStorage.getItem(BACKUP_KEY));
+            if (!last) {
+                el.className = 'text-[11px] text-amber-400 px-1';
+                el.innerText = 'Noch keine Sicherung. Tippe auf „Sichern“, damit deine Fänge nicht verloren gehen.';
+                return;
+            }
+            const days = Math.floor((Date.now() - last) / 86400000);
+            if (days >= 7) {
+                el.className = 'text-[11px] text-amber-400 px-1';
+                el.innerText = `Letzte Sicherung vor ${days} Tagen. Bitte erneut sichern.`;
+            } else {
+                el.className = 'text-[11px] text-neutral-500 px-1';
+                el.innerText = `Letzte Sicherung: ${new Date(last).toLocaleDateString('de-DE')}`;
             }
         }
 
+        // ---------- Karte mit Fischen ----------
         function plotCatchMarkers() {
             if (!map) return;
             catchMarkers.forEach(m => map.removeLayer(m));
             catchMarkers = [];
 
             const fishIcon = L.divIcon({
-                html: `<div class="bg-cardBg border border-blue-500 rounded-full p-1 shadow-lg flex items-center justify-center bg-opacity-90">
+                html: `<div class="bg-cardBg border border-blue-500 rounded-full p-1 shadow-lg flex items-center justify-center">
                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                <path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.14 0 6 2.46 6 6s-2.86 6-6 6c-3.56 0-7.56-2.54-8.5-6Z"/>
                                <path d="M18 12v.5"/>
@@ -591,20 +715,22 @@
             catches.forEach(c => {
                 if (c.lat && c.lng) {
                     const marker = L.marker([c.lat, c.lng], { icon: fishIcon }).addTo(map);
-                    marker.bindPopup(`<b>${c.species}</b><br>${c.length ? c.length + ' cm' : ''}<br><a href="#" onclick="openModalEdit('${c.id}'); return false;" style="color: #0ea5e9; text-decoration: underline;">Details öffnen</a>`);
-                    marker.on('click', () => {
-                        openModalEdit(c.id);
-                    });
+                    marker.bindPopup(
+                        `<b>${esc(c.species)}</b><br>${c.length ? esc(c.length) + ' cm' : ''}<br>` +
+                        `<button type="button" data-action="edit" data-id="${esc(c.id)}" style="color:#0ea5e9;text-decoration:underline;background:none;border:0;padding:0;margin-top:4px;cursor:pointer;">Details öffnen</button>`
+                    );
+                    marker.on('click', () => openModalEdit(c.id));
                     catchMarkers.push(marker);
                 }
             });
         }
 
+        // ---------- Liste ----------
         function updateSpeciesFilter() {
             const select = document.getElementById('filter-species');
             const currentVal = select.value;
             const speciesSet = [...new Set(catches.map(c => c.species))];
-            
+
             select.innerHTML = '<option value="">Alle Arten</option>';
             speciesSet.forEach(s => {
                 const opt = document.createElement('option');
@@ -613,6 +739,7 @@
                 if (s === currentVal) opt.selected = true;
                 select.appendChild(opt);
             });
+            if (!speciesSet.includes(currentVal)) select.value = '';
         }
 
         function renderCatches() {
@@ -621,43 +748,59 @@
             const filtered = filter ? catches.filter(c => c.species === filter) : catches;
 
             document.getElementById('catch-count').innerText = `${filtered.length} Fänge erfasst`;
+            renderBackupStatus();
 
-            if (filtered.length === 0) {
+            if (catches.length === 0) {
                 container.innerHTML = `
-                    <div class="text-center py-12 text-neutral-600 bg-cardBg rounded-2xl border border-neutral-800">
-                        <i data-lucide="fish-off" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
-                        <p class="text-sm">Keine Fänge gefunden</p>
-                    </div>
-                `;
+                    <div class="text-center py-12 px-4 text-neutral-500 bg-cardBg rounded-2xl border border-neutral-800">
+                        <i data-lucide="fish" class="w-10 h-10 mx-auto mb-3 opacity-50"></i>
+                        <p class="text-sm font-medium text-neutral-300">Noch keine Fänge</p>
+                        <p class="text-xs mt-1">Tippe unten auf das Mikrofon, auf die Karte oder auf „+ Fang“.</p>
+                    </div>`;
                 lucide.createIcons();
                 return;
             }
 
-            container.innerHTML = filtered.map(c => `
-                <div class="bg-cardBg border border-neutral-800 rounded-2xl p-4 shadow-sm flex flex-col space-y-2">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <span class="text-xs text-white font-semibold uppercase tracking-wider">${c.species}</span>
-                            ${c.length ? `<div class="mt-0.5"><span class="text-xs text-neutral-400 font-bold">${c.length} cm</span></div>` : ''}
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-neutral-600 bg-cardBg rounded-2xl border border-neutral-800">
+                        <p class="text-sm">Keine Fänge für diese Art</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(c => {
+                const id = esc(c.id);
+                const hasCoords = c.lat && c.lng;
+                const locationHtml = hasCoords
+                    ? `<button type="button" data-action="jump" data-lat="${Number(c.lat)}" data-lng="${Number(c.lng)}" class="flex items-center gap-1 truncate text-left hover:text-white transition"><i data-lucide="map-pin" class="w-3 h-3 text-white shrink-0"></i><span class="truncate underline">${esc(c.location)}</span></button>`
+                    : (c.location ? `<div class="flex items-center gap-1 truncate"><i data-lucide="map-pin" class="w-3 h-3 text-neutral-500 shrink-0"></i><span class="truncate">${esc(c.location)}</span></div>` : '');
+                return `
+                <div class="bg-cardBg border border-neutral-800 rounded-2xl p-4 shadow-sm space-y-3">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-white truncate">${esc(c.species)}</p>
+                            <p class="text-2xl font-bold text-blue-400 leading-tight">${c.length ? esc(c.length) + ' cm' : '<span class="text-neutral-600 text-base">Länge unbekannt</span>'}</p>
                         </div>
-                        <div class="flex space-x-1">
-                            <button onclick="openModalEdit('${c.id}')" class="p-1.5 text-neutral-400 hover:text-white transition"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                            <button onclick="deleteCatch('${c.id}')" class="p-1.5 text-neutral-400 hover:text-red-400 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <div class="flex shrink-0">
+                            <button type="button" data-action="edit" data-id="${id}" class="p-2 text-neutral-400 hover:text-white transition rounded-lg" aria-label="Bearbeiten"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button type="button" data-action="delete" data-id="${id}" class="p-2 text-neutral-400 hover:text-red-400 transition rounded-lg" aria-label="Löschen"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                     </div>
-                    <div class="grid gap-2 text-xs text-neutral-400 pt-1 border-t border-neutral-800/60">
-                        ${c.lat && c.lng ? `<div onclick="jumpToLocation(${c.lat}, ${c.lng})" class="flex items-center space-x-1 truncate cursor-pointer hover:text-white transition"><i data-lucide="map-pin" class="w-3 h-3 text-white shrink-0"></i><span class="truncate underline">${c.location}</span></div>` : (c.location ? `<div class="flex items-center space-x-1 truncate"><i data-lucide="map-pin" class="w-3 h-3 text-neutral-500 shrink-0"></i><span class="truncate">${c.location}</span></div>` : '')}
-                        <div class="flex items-center space-x-1"><i data-lucide="calendar" class="w-3 h-3 text-neutral-500 shrink-0"></i><span>${c.datetime ? c.datetime.replace('T', ' ') : ''}</span></div>
+                    <div class="grid gap-1.5 text-xs text-neutral-400 pt-2 border-t border-neutral-800/60">
+                        ${locationHtml}
+                        <div class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3 text-neutral-500 shrink-0"></i><span>${esc(c.datetime ? c.datetime.replace('T', ' ') : '')}</span></div>
                     </div>
-                    ${c.notes ? `<p class="text-xs text-neutral-300 bg-black p-2 rounded-xl mt-1">${c.notes}</p>` : ''}
-                </div>
-            `).join('');
+                    ${c.notes ? `<p class="text-xs text-neutral-300 bg-black p-2.5 rounded-xl whitespace-pre-wrap break-words">${esc(c.notes)}</p>` : ''}
+                </div>`;
+            }).join('');
             lucide.createIcons();
         }
 
+        // ---------- Statistik ----------
         function renderStats() {
             document.getElementById('stat-total').innerText = catches.length;
-            
+
             const maxLen = catches.reduce((max, c) => (c.length && c.length > max ? c.length : max), 0);
             document.getElementById('stat-biggest').innerText = `${maxLen} cm`;
 
@@ -665,21 +808,25 @@
             catches.forEach(c => {
                 counts[c.species] = (counts[c.species] || 0) + 1;
             });
+            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const top = sorted.length ? sorted[0][1] : 1;
+            const box = document.getElementById('stat-species-list');
 
-            const sortedSpecies = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-            const speciesListContainer = document.getElementById('stat-species-list');
-
-            if (sortedSpecies.length === 0) {
-                speciesListContainer.innerHTML = '<p class="text-xs text-neutral-600">Noch keine Daten vorhanden</p>';
+            if (sorted.length === 0) {
+                box.innerHTML = '<p class="text-xs text-neutral-600">Noch keine Daten vorhanden</p>';
                 return;
             }
 
-            speciesListContainer.innerHTML = sortedSpecies.map(([species, count]) => `
-                <div class="flex justify-between items-center">
-                    <span class="text-neutral-300">${species}</span>
-                    <span class="bg-black px-2 py-0.5 rounded-md text-xs font-medium text-white border border-neutral-800">${count}x</span>
-                </div>
-            `).join('');
+            box.innerHTML = sorted.map(([species, count]) => `
+                <div class="space-y-1">
+                    <div class="flex justify-between items-center">
+                        <span class="text-neutral-200">${esc(species)}</span>
+                        <span class="bg-black px-2 py-0.5 rounded-md text-xs font-medium text-white border border-neutral-800">${count}×</span>
+                    </div>
+                    <div class="h-1.5 bg-neutral-900 rounded-full overflow-hidden">
+                        <div class="bar-fill h-full rounded-full" style="width: ${Math.round((count / top) * 100)}%"></div>
+                    </div>
+                </div>`).join('');
         }
     </script>
 </body>
