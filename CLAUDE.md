@@ -5,8 +5,8 @@
 Eine Handy-App (Web-App im Browser), mit der der Nutzer seine Fischfänge festhält:
 Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 
-- **Online:** noch nicht bestätigt – vermutlich über GitHub Pages
-  (`https://marchens1977.github.io/Fisch-Fang-Tracker/`). Bitte prüfen und hier eintragen.
+- **Online:** https://marchens1977.github.io/Fisch-Fang-Tracker/ (GitHub Pages, vom Nutzer am 16.11.2026 bestätigt).
+  Änderungen in `main` erscheinen dort nach wenigen Minuten automatisch.
 - **Code:** GitHub-Projekt `marchens1977/Fisch-Fang-Tracker`, Hauptversion = Branch `main`.
 
 ### Technischer Aufbau
@@ -52,10 +52,10 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 12.11.2026 | Weitere Versionen und Startbild hochgeladen (vom Nutzer) | – |
 | 15.11.2026 | Import sicher gemacht, Sicherungs-Hinweis, sichere Anzeige, neues Design | – (direkt in `main`) |
 | 16.11.2026 | Dieses Tagebuch (`CLAUDE.md`) angelegt | #1 |
+| 16.11.2026 | Online-Adresse bestätigt und eingetragen | #2 |
 
 ## 4. Offene Ideen / nächste Schritte
 
-- Online-Adresse prüfen und oben eintragen
 - Fotos zu einem Fang speichern
 - Wetter und Uhrzeit automatisch mitspeichern
 - Filter in der Liste (z. B. nach Fischart oder Monat)
