@@ -51,7 +51,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 28.10.2026 | Erste Version der App hochgeladen (vom Nutzer, über GitHub) | – |
 | 12.11.2026 | Weitere Versionen und Startbild hochgeladen (vom Nutzer) | – |
 | 15.11.2026 | Import sicher gemacht, Sicherungs-Hinweis, sichere Anzeige, neues Design | – (direkt in `main`) |
-| 16.11.2026 | Dieses Tagebuch (`CLAUDE.md`) angelegt | (wird ergänzt) |
+| 16.11.2026 | Dieses Tagebuch (`CLAUDE.md`) angelegt | #1 |
 
 ## 4. Offene Ideen / nächste Schritte
 
