@@ -53,7 +53,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 15.11.2026 | Import sicher gemacht, Sicherungs-Hinweis, sichere Anzeige, neues Design | – (direkt in `main`) |
 | 16.11.2026 | Dieses Tagebuch (`CLAUDE.md`) angelegt | #1 |
 | 16.11.2026 | Online-Adresse bestätigt und eingetragen | #2 |
-| 18.11.2026 | Regel „Hilfsprogramme und Tests gehören ins Projekt“ eingetragen | (wird ergänzt) |
+| 18.11.2026 | Regel „Hilfsprogramme und Tests gehören ins Projekt“ eingetragen | #3 |
 
 ## 4. Offene Ideen / nächste Schritte
 
