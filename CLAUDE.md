@@ -53,6 +53,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 15.11.2026 | Import sicher gemacht, Sicherungs-Hinweis, sichere Anzeige, neues Design | – (direkt in `main`) |
 | 16.11.2026 | Dieses Tagebuch (`CLAUDE.md`) angelegt | #1 |
 | 16.11.2026 | Online-Adresse bestätigt und eingetragen | #2 |
+| 18.11.2026 | Regel „Hilfsprogramme und Tests gehören ins Projekt“ eingetragen | #3 |
 
 ## 4. Offene Ideen / nächste Schritte
 
@@ -79,6 +80,25 @@ Wenn du nicht auf Opus läufst (z. B. Fable) und eine Aufgabe abgeschlossen ist,
 den Nutzer am Ende der Antwort:
 „Tipp: Du kannst jetzt mit dem Befehl /model wieder auf Opus zurückstellen.“
 
-## 7. Regel zum Tagebuch
+## 7. Regel: Hilfsprogramme und Tests gehören ins Projekt
+
+1. Automatische Prüfungen (Tests) und Hilfsprogramme, die über eine einzelne Aufgabe
+   hinaus nützlich sind, werden im Projekt gespeichert (z. B. Ordner `werkzeuge/` oder
+   `test/`) – nicht nur im Arbeitsbereich der Sitzung, der beim Archivieren verloren geht.
+2. Im Tagebuch steht, wie man sie startet und was sie prüfen.
+3. Nach jeder Code-Änderung die vorhandenen Prüfungen laufen lassen; bei neuen Funktionen
+   passende Prüfpunkte ergänzen.
+4. Gibt es noch keine automatische Prüfung, bei der nächsten Code-Änderung eine einfache anlegen.
+5. Was Claude nicht selbst testen kann (z. B. das echte Handy, den Raspberry Pi), im
+   Tagebuch als Test für den Nutzer vermerken.
+
+### Vorhandene Prüfungen und Hilfsprogramme
+- Noch keine (Stand 18.11.2026). Die erste einfache Prüfung kommt bei der nächsten Code-Änderung.
+
+### Tests für den Nutzer (kann Claude nicht selbst prüfen)
+- App auf dem Handy in Chrome öffnen und einen Fang per Sprache eintragen.
+- Standort zentrieren auf dem Handy ausprobieren (braucht GPS).
+
+## 8. Regel zum Tagebuch
 
 Nach jeder größeren Änderung dieses Tagebuch aktualisieren (vor allem Verlauf und offene Ideen).
