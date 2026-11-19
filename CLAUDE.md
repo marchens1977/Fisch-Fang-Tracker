@@ -15,6 +15,11 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 |---|---|
 | `index.html` | Die ganze App in einer Datei (Aussehen, Text und Programmcode) |
 | `Startbild.jpg` | Bild auf dem Startbildschirm |
+| `manifest.json` | „Steckbrief“ der App: Name, Symbol, Farben – damit man sie installieren kann |
+| `sw.js` | Offline-Helfer (Service Worker): speichert die App im Handy, damit sie ohne Internet startet |
+| `icons/` | App-Symbole (blauer Hintergrund, oranger Fisch) |
+| `werkzeuge/symbole_erzeugen.py` | Hilfsprogramm, das die Symbole neu zeichnet |
+| `test/pruefung.py` | Automatische Prüfung |
 | `CLAUDE.md` | Dieses Tagebuch |
 
 - **Aussehen:** Tailwind (fertige Design-Bausteine, aus dem Internet geladen)
@@ -42,7 +47,14 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - Die App zeigt an, **wann zuletzt gesichert** wurde, und warnt, wenn das lange her ist.
 - Eingaben (Namen, Notizen) werden **sicher angezeigt**, damit kein eingeschleuster Code läuft.
 - Zahleneingaben (z. B. Größe) werden geprüft.
-- Design: dunkel, Navigation unten, großer roter Mikrofon-Knopf in der Mitte.
+- Design: **New-York-Mets-Farben** – Blau `#002D72` (Flächen), Orange `#FF5910` (Knöpfe,
+  Hervorhebungen), sehr dunkles Blau `#001433` als Hintergrund. Navigation unten, großer
+  **oranger** Mikrofon-Knopf in der Mitte. Löschen bleibt rot (Warnfarbe).
+- **Installierbare Web-App (PWA)** statt „richtiger“ App aus dem Play Store: Sie bekommt ein
+  eigenes Symbol, öffnet ohne Browser-Leiste und startet offline. Kein PC, keine Gebühr,
+  Updates kommen automatisch über GitHub Pages.
+- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v1`) erhöhen,
+  damit alte gespeicherte Versionen sicher ersetzt werden.
 
 ## 3. Verlauf
 
@@ -54,13 +66,14 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 16.11.2026 | Dieses Tagebuch (`CLAUDE.md`) angelegt | #1 |
 | 16.11.2026 | Online-Adresse bestätigt und eingetragen | #2 |
 | 18.11.2026 | Regel „Hilfsprogramme und Tests gehören ins Projekt“ eingetragen | #3 |
+| 19.11.2026 | Installierbar (eigenes Symbol, offline), Mets-Farben, erste automatische Prüfung | #4 |
 
 ## 4. Offene Ideen / nächste Schritte
 
 - Fotos zu einem Fang speichern
 - Wetter und Uhrzeit automatisch mitspeichern
 - Filter in der Liste (z. B. nach Fischart oder Monat)
-- App auf dem Startbildschirm des Handys installierbar machen (funktioniert dann auch ohne Internet)
+- Kartenbilder für offline speichern (derzeit braucht die Karte Internet)
 
 ## 5. Zusammenarbeit mit dem Nutzer
 
@@ -93,11 +106,23 @@ den Nutzer am Ende der Antwort:
    Tagebuch als Test für den Nutzer vermerken.
 
 ### Vorhandene Prüfungen und Hilfsprogramme
-- Noch keine (Stand 18.11.2026). Die erste einfache Prüfung kommt bei der nächsten Code-Änderung.
+- **`python3 test/pruefung.py`** – prüft App-Steckbrief, Symbole (Größen), Offline-Helfer,
+  Verweise in `index.html`, Mets-Farben und ob der Programmcode fehlerfrei lesbar ist.
+  Am Ende steht „Alle Prüfungen bestanden.“ oder die Zahl der Fehler.
+- **`python3 werkzeuge/symbole_erzeugen.py`** – zeichnet die Symbole in `icons/` neu
+  (braucht das Python-Paket Pillow). Farben/Form stehen oben in der Datei.
+- Vorschau-Bilder: Claude kann die App in der Sitzung mit Playwright im Handy-Format
+  fotografieren; die Design-Bausteine aus dem Internet sind dort gesperrt und werden
+  dafür lokal nachgebaut (nur für die Vorschau, nicht im Projekt).
 
 ### Tests für den Nutzer (kann Claude nicht selbst prüfen)
 - App auf dem Handy in Chrome öffnen und einen Fang per Sprache eintragen.
 - Standort zentrieren auf dem Handy ausprobieren (braucht GPS).
+- [ ] App in Chrome öffnen → Menü (⋮) → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.
+- [ ] Auf dem Startbildschirm erscheint das Symbol (blauer Hintergrund, oranger Fisch).
+- [ ] App über das Symbol öffnen: keine Adressleiste, Statusleiste oben blau.
+- [ ] Farben: Blau/Orange überall, Mikrofon-Knopf orange.
+- [ ] Flugmodus an → App öffnen: Sie startet, Liste und Statistik gehen (Karte bleibt grau).
 
 ## 8. Regel zum Tagebuch
 

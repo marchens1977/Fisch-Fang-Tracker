@@ -1,0 +1,17 @@
+{
+  "name": "Fischfang Tracker",
+  "short_name": "Fischfang",
+  "description": "Fischfänge mit Karte, Sprache und Statistik festhalten",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#001433",
+  "theme_color": "#002D72",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
