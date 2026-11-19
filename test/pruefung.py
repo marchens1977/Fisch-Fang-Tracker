@@ -1,7 +1,8 @@
 """Automatische Prüfung für den Fischfang Tracker.
 Start (im Projektordner):  python3 test/pruefung.py
 Prüft: App-Steckbrief (manifest.json), Symbole, Offline-Helfer (sw.js),
-Verweise in index.html, Mets-Farben, und ob der Programmcode fehlerfrei lesbar ist (wenn node da ist)."""
+Verweise in index.html, Mets-Farben, ob der Programmcode fehlerfrei lesbar ist (wenn node da ist),
+die Android-App (Ordner android/) und eine Simulation der App-Verbindung (wenn Playwright da ist)."""
 import json, re, shutil, struct, subprocess, sys, tempfile
 from pathlib import Path
 
@@ -80,6 +81,40 @@ if node:
         pruefe(r.returncode == 0, f"Programmcode-Block {nr + 1} fehlerfrei lesbar" + ("" if r.returncode == 0 else ": " + r.stderr[:300]))
 else:
     print("HINWEIS  node nicht installiert – Syntax-Prüfung übersprungen")
+
+# 7. Android-App (Ordner android/)
+A = ROOT / "android"
+for datei in ["build.gradle", "settings.gradle", "gradlew", "gradle/wrapper/gradle-wrapper.jar",
+              "gradle/wrapper/gradle-wrapper.properties", "app/build.gradle", "app/app-signing.keystore",
+              "app/src/main/AndroidManifest.xml", "app/src/main/java/de/fischfang/app/MainActivity.java",
+              "app/src/main/res/drawable/ic_launcher_foreground.xml",
+              "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml"]:
+    pruefe((A / datei).exists(), f"Android: Datei vorhanden: {datei}")
+am = (A / "app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
+pruefe("ACCESS_FINE_LOCATION" in am, "Android: GPS-Erlaubnis eingetragen")
+pruefe("RECOGNIZE_SPEECH" in am, "Android: Spracherkennung auffindbar (queries)")
+java = (A / "app/src/main/java/de/fischfang/app/MainActivity.java").read_text(encoding="utf-8")
+pruefe("https://marchens1977.github.io/Fisch-Fang-Tracker/" in java, "Android: App lädt die richtige Seite")
+for f in ("saveFile", "startSpeech", "onGeolocationPermissionsShowPrompt", "onShowFileChooser"):
+    pruefe(f in java, f"Android: Funktion vorhanden: {f}")
+pruefe("FischNativeApp.onSpeech" in java and "window.FischNativeApp = {" in html,
+       "Webseite und App sprechen dieselbe Sprache (FischNativeApp)")
+pruefe("window.AndroidApp.startSpeech()" in html and "window.AndroidApp.saveFile(" in html,
+       "Webseite nutzt in der App Sprache und Sicherung des Handys")
+import xml.dom.minidom
+for x in (A / "app/src/main").rglob("*.xml"):
+    try:
+        xml.dom.minidom.parse(str(x)); ok = True
+    except Exception:
+        ok = False
+    pruefe(ok, f"Android: XML lesbar: {x.relative_to(A)}")
+pruefe((ROOT / ".github/workflows/android-app.yml").exists(), "Automatischer App-Bau bei GitHub eingerichtet")
+
+# 8. Programm-Ablauf im Browser (wenn Playwright da ist): App-Verbindung simulieren
+if node and (ROOT / "test/app_simulation.js").exists():
+    r = subprocess.run([node, str(ROOT / "test/app_simulation.js")], capture_output=True, text=True, cwd=ROOT)
+    print(r.stdout.strip())
+    pruefe(r.returncode == 0, "Simulation der Android-App: Sprache, Sicherung" + ("" if r.returncode == 0 else ": " + r.stderr[-500:]))
 
 print()
 if fehler:

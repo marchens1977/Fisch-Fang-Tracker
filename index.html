@@ -355,6 +355,11 @@
 
         // ---------- Sprachfang ----------
         function startVoiceRecording() {
+            // In der Android-App: Spracherkennung des Handys benutzen
+            if (window.AndroidApp && typeof window.AndroidApp.startSpeech === 'function') {
+                window.AndroidApp.startSpeech();
+                return;
+            }
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 alert('Spracherkennung wird von diesem Browser leider nicht unterstützt.');
@@ -623,6 +628,12 @@
 
         // ---------- Sichern & Hinzufügen ----------
         function exportData() {
+            // In der Android-App: Speicherort auf dem Handy wählen lassen
+            if (window.AndroidApp && typeof window.AndroidApp.saveFile === 'function') {
+                const day = getLocalDateTimeString().slice(0, 10);
+                window.AndroidApp.saveFile(`fischfang_sicherung_${day}.json`, JSON.stringify(catches, null, 2));
+                return; // "zuletzt gesichert" wird erst gesetzt, wenn die Datei wirklich gespeichert ist
+            }
             const blob = new Blob([JSON.stringify(catches, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const today = getLocalDateTimeString().slice(0, 10);
@@ -842,6 +853,23 @@
                     </div>
                 </div>`).join('');
         }
+
+        // ---------- Verbindung zur Android-App ----------
+        // Die App (Ordner android/) ruft diese Funktionen auf.
+        window.FischNativeApp = {
+            onSpeech(text) {
+                const t = String(text || '').trim();
+                if (t) {
+                    parseAndSaveVoiceCatch(t);
+                } else {
+                    alert('Es konnte kein Text erkannt werden. Bitte probiere es noch einmal.');
+                }
+            },
+            onBackupSaved() {
+                localStorage.setItem(BACKUP_KEY, String(Date.now()));
+                renderBackupStatus();
+            }
+        };
 
         // ---------- Installierbare App: Offline-Helfer anmelden ----------
         if ('serviceWorker' in navigator) {
