@@ -85,7 +85,6 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (updates != null) {
-            updates.onResume();
             updates.autoCheck();
         }
     }

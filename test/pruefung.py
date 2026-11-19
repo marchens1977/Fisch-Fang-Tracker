@@ -122,7 +122,11 @@ if upd.exists():
            "Versionsnummer der App und des Downloads passen zusammen")
     pruefe('REPO = "marchens1977/Fisch-Fang-Tracker"' in u, "Update fragt das richtige GitHub-Projekt")
     pruefe("updates.autoCheck()" in java, "App sucht beim Start von selbst nach Updates")
-pruefe("REQUEST_INSTALL_PACKAGES" in am and "UpdateReceiver" in am, "Android: Erlaubnis und Empfänger für Updates eingetragen")
+pruefe("REQUEST_INSTALL_PACKAGES" not in am,
+       "Android: KEINE Erlaubnis „andere Apps installieren“ (sonst blockiert Google Play Protect die App)")
+pruefe('<string name="app_name">Fischfang Tracker</string>' in (A / "app/src/main/res/values/strings.xml").read_text(encoding="utf-8"),
+       "Android: Name unter dem Symbol ist „Fischfang Tracker“")
+pruefe(m.get("short_name") == "Fischfang Tracker", "Web-App: Name unter dem Symbol ist „Fischfang Tracker“")
 pruefe((ROOT / ".github/workflows/android-app.yml").exists(), "Automatischer App-Bau bei GitHub eingerichtet")
 
 # 8. Programm-Ablauf im Browser (wenn Playwright da ist): App-Verbindung simulieren
