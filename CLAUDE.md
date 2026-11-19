@@ -20,6 +20,10 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | `icons/` | App-Symbole (blauer Hintergrund, oranger Fisch) |
 | `werkzeuge/symbole_erzeugen.py` | Hilfsprogramm, das die Symbole neu zeichnet |
 | `test/pruefung.py` | Automatische Prüfung |
+| `test/app_simulation.js` | Spielt die Android-App im Browser nach (Teil der Prüfung) |
+| `android/` | Eigene **Android-App** (siehe „Android-App“ unten) |
+| `.github/workflows/android-app.yml` | Baut die App-Datei (APK) automatisch bei GitHub |
+| `werkzeuge/android_symbol_erzeugen.py` | Zeichnet das Symbol der Android-App |
 | `CLAUDE.md` | Dieses Tagebuch |
 
 - **Aussehen:** Tailwind (fertige Design-Bausteine, aus dem Internet geladen)
@@ -30,12 +34,35 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
   kleiner Speicher im Browser). Es gibt keinen Server. Wer den Browser-Speicher löscht,
   verliert die Fänge – daher die Sicherung als Datei (Export/Import).
 
+### Android-App (Ordner `android/`) – gebaut wie die Fitness-App des Nutzers
+
+- Kleine App (Java, ohne Zusatz-Bibliotheken), die die Online-Seite anzeigt
+  (`MainActivity.java`). Paketname `de.fischfang.app`, Name auf dem Handy „Fischfang“.
+- Was die App zusätzlich zur Webseite macht:
+  - **GPS:** fragt die Standort-Erlaubnis von Android ab und gibt den Standort an die Seite.
+  - **Sprache:** Die Browser-Spracherkennung gibt es in Apps nicht. Darum ruft die Seite
+    `window.AndroidApp.startSpeech()` auf; Android öffnet sein Sprachfenster und schickt den
+    Text an `window.FischNativeApp.onSpeech(text)` zurück → gleiche Auswertung wie bisher.
+  - **Sicherung:** `window.AndroidApp.saveFile(name, inhalt)` → Speicherort wählen. Erst wenn
+    gespeichert ist, ruft die App `FischNativeApp.onBackupSaved()` („zuletzt gesichert“).
+  - **Sicherung laden:** Dateiauswahl des Handys.
+  - **Ohne Internet:** zeigt die gespeicherte Kopie der Seite.
+- Download der fertigen App:
+  https://github.com/marchens1977/Fisch-Fang-Tracker/releases/latest/download/FischfangTracker.apk
+  (wird bei jeder Änderung an `android/` auf `main` neu gebaut).
+- Änderungen nur an `index.html` brauchen **keine neue APK** – die App lädt die Online-Seite.
+- Signatur-Schlüssel `android/app/app-signing.keystore` liegt bewusst im Projekt (Passwort in
+  `app/build.gradle`), wie bei der Fitness-App, damit Updates ohne Neuinstallation klappen.
+  Nicht ändern! Sonst muss die App deinstalliert werden und die Fänge darin sind weg.
+- Die Fänge in der App und in Chrome sind **getrennt gespeichert**. Umzug: in Chrome
+  „Sichern“, in der App „Hinzufügen“.
+
 ### Bereiche der App
 1. Startbildschirm mit Bild und Start-Knopf
 2. Karte mit allen Fängen, Knopf „Standort zentrieren“
 3. Liste aller Fänge (bearbeiten, löschen, auf Karte springen)
 4. Statistik: Anzahl Fänge, größter Fisch, häufigste Arten (Balkendiagramm)
-5. Roter Mikrofon-Knopf: Fang per Sprache eintragen
+5. Oranger Mikrofon-Knopf: Fang per Sprache eintragen
 6. „+ Fang“: Fang von Hand eintragen
 7. Sicherung: Daten als Datei speichern und wieder laden
 
@@ -50,10 +77,10 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - Design: **New-York-Mets-Farben** – Blau `#002D72` (Flächen), Orange `#FF5910` (Knöpfe,
   Hervorhebungen), sehr dunkles Blau `#001433` als Hintergrund. Navigation unten, großer
   **oranger** Mikrofon-Knopf in der Mitte. Löschen bleibt rot (Warnfarbe).
-- **Installierbare Web-App (PWA)** statt „richtiger“ App aus dem Play Store: Sie bekommt ein
-  eigenes Symbol, öffnet ohne Browser-Leiste und startet offline. Kein PC, keine Gebühr,
-  Updates kommen automatisch über GitHub Pages.
-- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v1`) erhöhen,
+- **Zwei Wege, ein Code:** Die Seite bleibt als installierbare Web-App (PWA) online, und
+  zusätzlich gibt es eine **richtige Android-App** (Wunsch des Nutzers, 19.11.2026), gebaut wie
+  seine Fitness-App. Kein Play Store – die APK wird direkt von GitHub geladen.
+- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v2`) erhöhen,
   damit alte gespeicherte Versionen sicher ersetzt werden.
 
 ## 3. Verlauf
@@ -67,6 +94,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 16.11.2026 | Online-Adresse bestätigt und eingetragen | #2 |
 | 18.11.2026 | Regel „Hilfsprogramme und Tests gehören ins Projekt“ eingetragen | #3 |
 | 19.11.2026 | Installierbar (eigenes Symbol, offline), Mets-Farben, erste automatische Prüfung | #4 |
+| 19.11.2026 | Richtige Android-App (Ordner `android/`), automatischer APK-Bau, App-Simulation im Test | #5 |
 
 ## 4. Offene Ideen / nächste Schritte
 
@@ -74,6 +102,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - Wetter und Uhrzeit automatisch mitspeichern
 - Filter in der Liste (z. B. nach Fischart oder Monat)
 - Kartenbilder für offline speichern (derzeit braucht die Karte Internet)
+- Android-App: Startbildschirm-Widget (z. B. „letzter Fang“), wie bei der Fitness-App
 
 ## 5. Zusammenarbeit mit dem Nutzer
 
@@ -109,6 +138,15 @@ den Nutzer am Ende der Antwort:
 - **`python3 test/pruefung.py`** – prüft App-Steckbrief, Symbole (Größen), Offline-Helfer,
   Verweise in `index.html`, Mets-Farben und ob der Programmcode fehlerfrei lesbar ist.
   Am Ende steht „Alle Prüfungen bestanden.“ oder die Zahl der Fehler.
+  Mit Playwright läuft zusätzlich `test/app_simulation.js`: Sie spielt die Android-App nach
+  (Mikrofon → Handy-Spracherkennung, „Zander 65 Zentimeter“ wird gespeichert, GPS-Ort,
+  Sicherung über Handy-Speicherort). Braucht den Karten-Baustein Leaflet: aus dem Internet,
+  oder in Claudes Sitzung lokal per `npm i leaflet@1.9.4` in einem Hilfsordner und
+  `NODE_PATH="$NODE_PATH:<Hilfsordner>/node_modules" python3 test/pruefung.py`.
+  Fehlt Leaflet, wird die Simulation mit Hinweis übersprungen.
+- **Android-App:** wird bei jeder Änderung an `android/` von GitHub gebaut – ein
+  erfolgreicher Bau ist die Prüfung, dass der Code übersetzbar ist.
+- **`python3 werkzeuge/android_symbol_erzeugen.py`** – zeichnet das Android-Symbol neu.
 - **`python3 werkzeuge/symbole_erzeugen.py`** – zeichnet die Symbole in `icons/` neu
   (braucht das Python-Paket Pillow). Farben/Form stehen oben in der Datei.
 - Vorschau-Bilder: Claude kann die App in der Sitzung mit Playwright im Handy-Format
@@ -123,6 +161,13 @@ den Nutzer am Ende der Antwort:
 - [ ] App über das Symbol öffnen: keine Adressleiste, Statusleiste oben blau.
 - [ ] Farben: Blau/Orange überall, Mikrofon-Knopf orange.
 - [ ] Flugmodus an → App öffnen: Sie startet, Liste und Statistik gehen (Karte bleibt grau).
+- **Android-App:**
+- [ ] APK herunterladen und installieren (Play Protect: „App scannen“ reicht).
+- [ ] Symbol „Fischfang“ (oranger Fisch auf Blau) erscheint in der App-Liste.
+- [ ] App öffnen: keine Adressleiste; Frage nach Standort-Erlaubnis → erlauben → Standort auf der Karte.
+- [ ] Mikrofon-Knopf: Android-Sprachfenster erscheint, „Zander 65 Zentimeter“ → Fang wird eingetragen.
+- [ ] „Sichern“: Speicherort wählen, Datei wird gespeichert, Hinweis „zuletzt gesichert“ ist aktuell.
+- [ ] „Hinzufügen“: Sicherung aus Chrome laden → Fänge erscheinen in der App.
 
 ## 8. Regel zum Tagebuch
 
