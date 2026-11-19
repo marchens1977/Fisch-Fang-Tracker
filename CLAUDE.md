@@ -39,9 +39,16 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
   (`MainActivity.java`). Paketname `de.fischfang.app`, Name auf dem Handy „Fischfang Tracker“.
 - Was die App zusätzlich zur Webseite macht:
   - **GPS:** fragt die Standort-Erlaubnis von Android ab und gibt den Standort an die Seite.
-  - **Sprache:** Die Browser-Spracherkennung gibt es in Apps nicht. Darum ruft die Seite
-    `window.AndroidApp.startSpeech()` auf; Android öffnet sein Sprachfenster und schickt den
-    Text an `window.FischNativeApp.onSpeech(text)` zurück → gleiche Auswertung wie bisher.
+  - **Sprache = Dauer-Diktat** (ab App 1.0.10, übernommen aus der App „Smartphone-Audio-Aufnahme“
+    des Nutzers): Die Seite ruft `AndroidApp.startDictation()` auf und zeigt ihr Fenster
+    „Zuhören aktiv“. Die App nutzt `SpeechRecognizer` (de-DE) und startet nach **jeder Sprechpause
+    sofort neu**; der Text wird gesammelt und laufend per `FischNativeApp.onDictation(text)`
+    angezeigt. Erst „Aufnahme beenden & Speichern“ → `AndroidApp.stopDictation()` → die App
+    schickt den ganzen Text an `FischNativeApp.onSpeech(text)` → gleiche Auswertung wie bisher.
+    Fehler (z. B. kein Internet) → `FischNativeApp.onDictationStatus(meldung)`.
+    Braucht die Mikrofon-Erlaubnis (`RECORD_AUDIO`, Android fragt beim ersten Mal).
+    Ältere App-Versionen haben nur `startSpeech()` (einfaches Google-Sprachfenster, stoppt bei
+    Pausen) – die Seite nutzt das automatisch, solange die App nicht aktualisiert ist.
   - **Sicherung:** `window.AndroidApp.saveFile(name, inhalt)` → Speicherort wählen. Erst wenn
     gespeichert ist, ruft die App `FischNativeApp.onBackupSaved()` („zuletzt gesichert“).
   - **Sicherung laden:** Dateiauswahl des Handys.
@@ -89,7 +96,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - **Zwei Wege, ein Code:** Die Seite bleibt als installierbare Web-App (PWA) online, und
   zusätzlich gibt es eine **richtige Android-App** (Wunsch des Nutzers, 19.11.2026), gebaut wie
   seine Fitness-App. Kein Play Store – die APK wird direkt von GitHub geladen.
-- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v5`) erhöhen,
+- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v6`) erhöhen,
   damit alte gespeicherte Versionen sicher ersetzt werden.
 
 ## 3. Verlauf
@@ -107,6 +114,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 19.11.2026 | Neues Symbol: Angelrute mit gefangenem Fisch (Wunsch des Nutzers, alter Fisch gefiel nicht) | #6 |
 | 19.11.2026 | App sucht selbst nach Updates und bietet sie sofort an (Wunsch des Nutzers) | #7 |
 | 19.11.2026 | Play Protect blockierte 1.0.6 → Selbst-Installation entfernt, Download über Browser; Name „Fischfang Tracker“ | #8 |
+| 19.11.2026 | Nutzer hat 1.0.8 installiert. Dauer-Diktat: Sprachaufnahme stoppt nicht mehr bei Pausen, nur bei „Beenden“ | #9 |
 
 ## 4. Offene Ideen / nächste Schritte
 
@@ -180,7 +188,9 @@ den Nutzer am Ende der Antwort:
 - [ ] APK herunterladen und installieren (Play Protect: „App scannen“ reicht).
 - [ ] Symbol mit Namen „Fischfang Tracker“ (Angelrute mit orangem Fisch auf Blau) erscheint in der App-Liste, nichts abgeschnitten.
 - [ ] App öffnen: keine Adressleiste; Frage nach Standort-Erlaubnis → erlauben → Standort auf der Karte.
-- [ ] Mikrofon-Knopf: Android-Sprachfenster erscheint, „Zander 65 Zentimeter“ → Fang wird eingetragen.
+- [ ] Mikrofon-Knopf: Fenster „Zuhören aktiv“, beim ersten Mal Mikrofon erlauben. Mit Pausen sprechen
+      (z. B. „Zander … 65 Zentimeter … am Rhein“) → Text erscheint laufend, Aufnahme läuft weiter.
+      „Aufnahme beenden & Speichern“ → Fang mit Art, Länge und ganzem Text als Notiz.
 - [ ] „Sichern“: Speicherort wählen, Datei wird gespeichert, Hinweis „zuletzt gesichert“ ist aktuell.
 - [ ] „Hinzufügen“: Sicherung aus Chrome laden → Fänge erscheinen in der App.
 - [ ] Statistik: unten steht „App-Version 1.0.N“ und der Knopf „Nach Update suchen“ → Meldung „neueste Version“.

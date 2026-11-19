@@ -245,6 +245,7 @@
         let recognition;
         let finalSpeechText = '';
         let isRecordingActive = false;
+        let appDictationActive = false;
 
         function loadCatches() {
             try {
@@ -360,7 +361,15 @@
 
         // ---------- Sprachfang ----------
         function startVoiceRecording() {
-            // In der Android-App: Spracherkennung des Handys benutzen
+            // In der Android-App (ab 1.0.10): Dauer-Diktat – hört zu, bis „Beenden“ gedrückt wird
+            if (window.AndroidApp && typeof window.AndroidApp.startDictation === 'function') {
+                appDictationActive = true;
+                document.getElementById('voice-transcript').innerText = 'Höre zu... Sprich jetzt. Pausen sind kein Problem – gespeichert wird erst bei „Beenden“.';
+                document.getElementById('voice-overlay').classList.remove('hidden');
+                window.AndroidApp.startDictation();
+                return;
+            }
+            // Ältere App-Version: einfaches Android-Sprachfenster
             if (window.AndroidApp && typeof window.AndroidApp.startSpeech === 'function') {
                 window.AndroidApp.startSpeech();
                 return;
@@ -417,6 +426,13 @@
         }
 
         function stopVoiceRecordingManual() {
+            if (appDictationActive) {
+                // Die App schickt den gesammelten Text an FischNativeApp.onSpeech → Fang wird gespeichert
+                appDictationActive = false;
+                document.getElementById('voice-overlay').classList.add('hidden');
+                window.AndroidApp.stopDictation();
+                return;
+            }
             isRecordingActive = false;
             if (recognition) {
                 recognition.stop();
@@ -869,6 +885,14 @@
                 } else {
                     alert('Es konnte kein Text erkannt werden. Bitte probiere es noch einmal.');
                 }
+            },
+            // Dauer-Diktat: bisher erkannter Text (wird laufend aktualisiert)
+            onDictation(text) {
+                const t = String(text || '').trim();
+                document.getElementById('voice-transcript').innerText = t ? `Erkannt: „${t}“` : 'Höre zu...';
+            },
+            onDictationStatus(message) {
+                document.getElementById('voice-transcript').innerText = String(message || '');
             },
             onBackupSaved() {
                 localStorage.setItem(BACKUP_KEY, String(Date.now()));

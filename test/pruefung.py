@@ -95,10 +95,12 @@ for datei in ["build.gradle", "settings.gradle", "gradlew", "gradle/wrapper/grad
     pruefe((A / datei).exists(), f"Android: Datei vorhanden: {datei}")
 am = (A / "app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
 pruefe("ACCESS_FINE_LOCATION" in am, "Android: GPS-Erlaubnis eingetragen")
+pruefe("RECORD_AUDIO" in am and "android.speech.RecognitionService" in am, "Android: Mikrofon-Erlaubnis und Spracherkennung fürs Dauer-Diktat eingetragen")
 pruefe("RECOGNIZE_SPEECH" in am, "Android: Spracherkennung auffindbar (queries)")
 java = (A / "app/src/main/java/de/fischfang/app/MainActivity.java").read_text(encoding="utf-8")
 pruefe("https://marchens1977.github.io/Fisch-Fang-Tracker/" in java, "Android: App lädt die richtige Seite")
-for f in ("saveFile", "startSpeech", "onGeolocationPermissionsShowPrompt", "onShowFileChooser"):
+for f in ("saveFile", "startSpeech", "startDictation", "stopDictation", "SpeechRecognizer",
+          "onGeolocationPermissionsShowPrompt", "onShowFileChooser"):
     pruefe(f in java, f"Android: Funktion vorhanden: {f}")
 pruefe("FischNativeApp.onSpeech" in java and "window.FischNativeApp = {" in html,
        "Webseite und App sprechen dieselbe Sprache (FischNativeApp)")

@@ -12,7 +12,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.view.WindowManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -42,6 +45,7 @@ public class MainActivity extends Activity {
     private static final int REQ_OPEN_FILE = 2;
     private static final int REQ_SAVE_FILE = 3;
     private static final int REQ_SPEECH = 4;
+    private static final int REQ_MIC = 5;
 
     private WebView webView;
     private UpdateChecker updates;
@@ -52,6 +56,12 @@ public class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean triedOfflineCopy = false;
+
+    // Dauer-Diktat (wie in der App „Smartphone-Audio-Aufnahme“ des Nutzers)
+    private SpeechRecognizer recognizer;
+    private boolean dictating = false;
+    private final StringBuilder dictationText = new StringBuilder();
+    private String lastPartial = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,6 +124,14 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_MIC) {
+            if (hasMicPermission()) {
+                beginDictation();
+            } else {
+                dictationStatus("Mikrofon nicht erlaubt. Bitte in den App-Einstellungen das Mikrofon erlauben.");
+            }
+            return;
+        }
         if (requestCode != REQ_LOCATION) return;
         boolean granted = hasLocationPermission();
         if (pendingGeoCallback != null) {
@@ -142,6 +160,154 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Keine Spracherkennung auf dem Handy gefunden (z. B. Google-App fehlt).",
                     Toast.LENGTH_LONG).show();
         }
+    }
+
+    // ---------------------------------------------------------------- Dauer-Diktat
+    // Hört so lange zu, bis auf der Seite „Aufnahme beenden & Speichern“ gedrückt wird.
+    // Nach jeder Sprechpause startet die Erkennung sofort neu; der Text wird gesammelt.
+
+    private boolean hasMicPermission() {
+        return checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void startDictation() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            // Keine Dauer-Erkennung möglich: das einfache Android-Sprachfenster verwenden
+            dictationStatus("Dauer-Diktat nicht verfügbar – nutze das einfache Sprachfenster.");
+            startSpeech();
+            return;
+        }
+        dictationText.setLength(0);
+        lastPartial = "";
+        if (hasMicPermission()) {
+            beginDictation();
+        } else {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC);
+        }
+    }
+
+    private void beginDictation() {
+        dictating = true;
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        listen();
+    }
+
+    private void listen() {
+        if (!dictating) return;
+        if (recognizer == null) {
+            recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            recognizer.setRecognitionListener(listener);
+        }
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE")
+                .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000);
+        try {
+            recognizer.startListening(i);
+        } catch (Exception e) {
+            dictationStatus("Spracherkennung ließ sich nicht starten. Du kannst trotzdem speichern.");
+        }
+    }
+
+    /** Beendet das Zuhören und gibt den gesammelten Text an die Seite (dort wird der Fang gespeichert). */
+    private void stopDictation() {
+        boolean wasActive = dictating || dictationText.length() > 0 || !lastPartial.isEmpty();
+        dictating = false;
+        if (recognizer != null) {
+            recognizer.destroy();
+            recognizer = null;
+        }
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (!lastPartial.isEmpty()) appendDictation(lastPartial); // zuletzt Gesagtes nicht verlieren
+        lastPartial = "";
+        String text = dictationText.toString().trim();
+        dictationText.setLength(0);
+        if (wasActive) sendSpeechToPage(text);
+    }
+
+    private void appendDictation(String part) {
+        String t = part == null ? "" : part.trim();
+        if (t.isEmpty()) return;
+        if (dictationText.length() > 0) dictationText.append(' ');
+        dictationText.append(t);
+    }
+
+    private void showDictation() {
+        String shown = (dictationText + " " + lastPartial).trim();
+        webView.evaluateJavascript("window.FischNativeApp && window.FischNativeApp.onDictation && "
+                + "window.FischNativeApp.onDictation(" + JSONObject.quote(shown) + ");", null);
+    }
+
+    private void dictationStatus(String message) {
+        webView.evaluateJavascript("window.FischNativeApp && window.FischNativeApp.onDictationStatus && "
+                + "window.FischNativeApp.onDictationStatus(" + JSONObject.quote(message) + ");", null);
+    }
+
+    private final RecognitionListener listener = new RecognitionListener() {
+        @Override public void onReadyForSpeech(Bundle b) { }
+        @Override public void onBeginningOfSpeech() { }
+        @Override public void onRmsChanged(float db) { }
+        @Override public void onBufferReceived(byte[] b) { }
+        @Override public void onEndOfSpeech() { }
+        @Override public void onEvent(int type, Bundle b) { }
+
+        @Override public void onPartialResults(Bundle b) {
+            ArrayList<String> t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            if (t != null && !t.isEmpty() && t.get(0) != null && !t.get(0).isEmpty()) {
+                lastPartial = t.get(0);
+                showDictation();
+            }
+        }
+
+        @Override public void onResults(Bundle b) {
+            ArrayList<String> t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            lastPartial = "";
+            if (t != null && !t.isEmpty()) appendDictation(t.get(0));
+            showDictation();
+            listen(); // gleich weiter zuhören
+        }
+
+        @Override public void onError(int error) {
+            if (!dictating) return;
+            if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                if (!lastPartial.isEmpty()) {
+                    appendDictation(lastPartial);
+                    lastPartial = "";
+                }
+                listen(); // nur eine Sprechpause – weiter zuhören
+            } else if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || error == SpeechRecognizer.ERROR_CLIENT) {
+                if (recognizer != null) {
+                    recognizer.destroy();
+                    recognizer = null;
+                }
+                handler.postDelayed(MainActivity.this::listen, 500);
+            } else {
+                dictating = false;
+                if (recognizer != null) {
+                    recognizer.destroy();
+                    recognizer = null;
+                }
+                String reason = error == SpeechRecognizer.ERROR_NETWORK || error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
+                        ? "Keine Internet-Verbindung für die Spracherkennung."
+                        : error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS
+                        ? "Mikrofon nicht erlaubt."
+                        : error == SpeechRecognizer.ERROR_AUDIO
+                        ? "Mikrofon wird gerade von einer anderen App benutzt."
+                        : "Spracherkennung unterbrochen (Fehler " + error + ").";
+                dictationStatus(reason + " Mit „Beenden & Speichern“ wird das bisher Gesagte gespeichert.");
+            }
+        }
+    };
+
+    @Override
+    protected void onDestroy() {
+        dictating = false;
+        if (recognizer != null) {
+            recognizer.destroy();
+            recognizer = null;
+        }
+        super.onDestroy();
     }
 
     private void sendSpeechToPage(String text) {
@@ -266,6 +432,16 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void startSpeech() {
             handler.post(MainActivity.this::startSpeech);
+        }
+
+        @JavascriptInterface
+        public void startDictation() {
+            handler.post(MainActivity.this::startDictation);
+        }
+
+        @JavascriptInterface
+        public void stopDictation() {
+            handler.post(MainActivity.this::stopDictation);
         }
 
         @JavascriptInterface
