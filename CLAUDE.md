@@ -17,13 +17,12 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | `Startbild.jpg` | Bild auf dem Startbildschirm |
 | `manifest.json` | „Steckbrief“ der App: Name, Symbol, Farben – damit man sie installieren kann |
 | `sw.js` | Offline-Helfer (Service Worker): speichert die App im Handy, damit sie ohne Internet startet |
-| `icons/` | App-Symbole (blauer Hintergrund, oranger Fisch) |
-| `werkzeuge/symbole_erzeugen.py` | Hilfsprogramm, das die Symbole neu zeichnet |
+| `icons/` | App-Symbole: weiße Angelrute mit gefangenem orangen Fisch auf Mets-Blau |
+| `werkzeuge/symbol_erzeugen.js` | Zeichnet das Symbol und erzeugt daraus alle Symbol-Dateien (Web + Android) |
 | `test/pruefung.py` | Automatische Prüfung |
 | `test/app_simulation.js` | Spielt die Android-App im Browser nach (Teil der Prüfung) |
 | `android/` | Eigene **Android-App** (siehe „Android-App“ unten) |
 | `.github/workflows/android-app.yml` | Baut die App-Datei (APK) automatisch bei GitHub |
-| `werkzeuge/android_symbol_erzeugen.py` | Zeichnet das Symbol der Android-App |
 | `CLAUDE.md` | Dieses Tagebuch |
 
 - **Aussehen:** Tailwind (fertige Design-Bausteine, aus dem Internet geladen)
@@ -80,7 +79,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - **Zwei Wege, ein Code:** Die Seite bleibt als installierbare Web-App (PWA) online, und
   zusätzlich gibt es eine **richtige Android-App** (Wunsch des Nutzers, 19.11.2026), gebaut wie
   seine Fitness-App. Kein Play Store – die APK wird direkt von GitHub geladen.
-- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v2`) erhöhen,
+- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v3`) erhöhen,
   damit alte gespeicherte Versionen sicher ersetzt werden.
 
 ## 3. Verlauf
@@ -95,6 +94,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 18.11.2026 | Regel „Hilfsprogramme und Tests gehören ins Projekt“ eingetragen | #3 |
 | 19.11.2026 | Installierbar (eigenes Symbol, offline), Mets-Farben, erste automatische Prüfung | #4 |
 | 19.11.2026 | Richtige Android-App (Ordner `android/`), automatischer APK-Bau, App-Simulation im Test | #5 |
+| 19.11.2026 | Neues Symbol: Angelrute mit gefangenem Fisch (Wunsch des Nutzers, alter Fisch gefiel nicht) | #6 |
 
 ## 4. Offene Ideen / nächste Schritte
 
@@ -146,9 +146,10 @@ den Nutzer am Ende der Antwort:
   Fehlt Leaflet, wird die Simulation mit Hinweis übersprungen.
 - **Android-App:** wird bei jeder Änderung an `android/` von GitHub gebaut – ein
   erfolgreicher Bau ist die Prüfung, dass der Code übersetzbar ist.
-- **`python3 werkzeuge/android_symbol_erzeugen.py`** – zeichnet das Android-Symbol neu.
-- **`python3 werkzeuge/symbole_erzeugen.py`** – zeichnet die Symbole in `icons/` neu
-  (braucht das Python-Paket Pillow). Farben/Form stehen oben in der Datei.
+- **`node werkzeuge/symbol_erzeugen.js`** – zeichnet das App-Symbol (Angelrute mit Fisch) und
+  erzeugt daraus `icons/symbol.svg`, die PNG-Symbole der Web-App und das Android-Symbol
+  (`ic_launcher_foreground.xml`). Braucht Playwright. Motiv, Farben, Drehung des Fisches und
+  Größe stehen oben in der Datei – nur dort ändern, nie die erzeugten Dateien von Hand.
 - Vorschau-Bilder: Claude kann die App in der Sitzung mit Playwright im Handy-Format
   fotografieren; die Design-Bausteine aus dem Internet sind dort gesperrt und werden
   dafür lokal nachgebaut (nur für die Vorschau, nicht im Projekt).
@@ -157,13 +158,13 @@ den Nutzer am Ende der Antwort:
 - App auf dem Handy in Chrome öffnen und einen Fang per Sprache eintragen.
 - Standort zentrieren auf dem Handy ausprobieren (braucht GPS).
 - [ ] App in Chrome öffnen → Menü (⋮) → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.
-- [ ] Auf dem Startbildschirm erscheint das Symbol (blauer Hintergrund, oranger Fisch).
+- [ ] Auf dem Startbildschirm erscheint das Symbol (Angelrute mit orangem Fisch auf Blau).
 - [ ] App über das Symbol öffnen: keine Adressleiste, Statusleiste oben blau.
 - [ ] Farben: Blau/Orange überall, Mikrofon-Knopf orange.
 - [ ] Flugmodus an → App öffnen: Sie startet, Liste und Statistik gehen (Karte bleibt grau).
 - **Android-App:**
 - [ ] APK herunterladen und installieren (Play Protect: „App scannen“ reicht).
-- [ ] Symbol „Fischfang“ (oranger Fisch auf Blau) erscheint in der App-Liste.
+- [ ] Symbol „Fischfang“ (Angelrute mit orangem Fisch auf Blau) erscheint in der App-Liste, nichts abgeschnitten.
 - [ ] App öffnen: keine Adressleiste; Frage nach Standort-Erlaubnis → erlauben → Standort auf der Karte.
 - [ ] Mikrofon-Knopf: Android-Sprachfenster erscheint, „Zander 65 Zentimeter“ → Fang wird eingetragen.
 - [ ] „Sichern“: Speicherort wählen, Datei wird gespeichert, Hinweis „zuletzt gesichert“ ist aktuell.

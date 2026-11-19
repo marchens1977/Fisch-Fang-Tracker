@@ -1,6 +1,6 @@
 // Service Worker: sorgt dafür, dass die App auch ohne Internet startet.
 // Bei Änderungen an der App die Versionsnummer erhöhen.
-const VERSION = 'fischfang-v2';
+const VERSION = 'fischfang-v3';
 const APP_DATEIEN = [
   './',
   './index.html',
