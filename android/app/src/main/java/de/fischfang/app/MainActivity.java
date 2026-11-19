@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
     private static final int REQ_SPEECH = 4;
 
     private WebView webView;
+    private UpdateChecker updates;
     private ValueCallback<Uri[]> fileCallback;
     private String pendingSaveContent;
     private String pendingGeoOrigin;
@@ -74,6 +75,18 @@ public class MainActivity extends Activity {
 
         if (savedInstanceState == null || webView.restoreState(savedInstanceState) == null) {
             webView.loadUrl(APP_URL);
+        }
+
+        updates = new UpdateChecker(this);
+        updates.autoCheck(); // von selbst nach Update suchen
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (updates != null) {
+            updates.onResume();
+            updates.autoCheck();
         }
     }
 
@@ -254,6 +267,16 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void startSpeech() {
             handler.post(MainActivity.this::startSpeech);
+        }
+
+        @JavascriptInterface
+        public String getVersion() {
+            return updates.currentVersionName();
+        }
+
+        @JavascriptInterface
+        public void checkUpdate() {
+            handler.post(() -> updates.check(true));
         }
 
         @JavascriptInterface

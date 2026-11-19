@@ -33,10 +33,12 @@ function lokal(datei) {
   // So sieht die Android-App für die Webseite aus:
   await page.addInitScript(() => {
     localStorage.clear();
-    window.__app = { speech: 0, saved: null };
+    window.__app = { speech: 0, saved: null, updateChecks: 0 };
     window.AndroidApp = {
       startSpeech() { window.__app.speech++; },
       saveFile(name, content) { window.__app.saved = { name, content }; },
+      getVersion() { return '1.0.4'; },
+      checkUpdate() { window.__app.updateChecks++; },
       isApp() { return true; }
     };
   });
@@ -75,6 +77,15 @@ function lokal(datei) {
   await page.evaluate(() => window.FischNativeApp.onBackupSaved());
   const nachher = await page.evaluate(() => localStorage.getItem('fish_last_export'));
   pruefe(nachher !== null, '„Zuletzt gesichert“ wird nach dem Speichern gesetzt');
+
+  // 4. Update-Knopf in der Statistik
+  await page.click('#nav-stats');
+  const box = await page.evaluate(() => ({
+    sichtbar: !document.getElementById('app-update-box').classList.contains('hidden'),
+    text: document.getElementById('app-version').textContent }));
+  pruefe(box.sichtbar && box.text === 'App-Version 1.0.4', 'Statistik zeigt App-Version');
+  await page.click('text=Nach Update suchen');
+  pruefe(await page.evaluate(() => window.__app.updateChecks) === 1, 'Knopf „Nach Update suchen“ fragt die App');
 
   pruefe(fehler.length === 0, 'keine Programmfehler auf der Seite' + (fehler.length ? ': ' + fehler.join(' | ') : ''));
   await browser.close();

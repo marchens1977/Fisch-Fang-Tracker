@@ -111,6 +111,18 @@ for x in (A / "app/src/main").rglob("*.xml"):
     except Exception:
         ok = False
     pruefe(ok, f"Android: XML lesbar: {x.relative_to(A)}")
+upd = (A / "app/src/main/java/de/fischfang/app/UpdateChecker.java")
+pruefe(upd.exists(), "Android: Update-Funktion vorhanden")
+if upd.exists():
+    u = upd.read_text(encoding="utf-8")
+    wf = (ROOT / ".github/workflows/android-app.yml").read_text(encoding="utf-8")
+    apk = re.search(r'APK_NAME = "([^"]+)"', u).group(1)
+    pruefe(apk in wf, f"Update sucht dieselbe Datei, die GitHub veröffentlicht ({apk})")
+    pruefe('TAG="app-v1.0.${GITHUB_RUN_NUMBER}"' in wf and "GITHUB_RUN_NUMBER" in (A / "app/build.gradle").read_text(),
+           "Versionsnummer der App und des Downloads passen zusammen")
+    pruefe('REPO = "marchens1977/Fisch-Fang-Tracker"' in u, "Update fragt das richtige GitHub-Projekt")
+    pruefe("updates.autoCheck()" in java, "App sucht beim Start von selbst nach Updates")
+pruefe("REQUEST_INSTALL_PACKAGES" in am and "UpdateReceiver" in am, "Android: Erlaubnis und Empfänger für Updates eingetragen")
 pruefe((ROOT / ".github/workflows/android-app.yml").exists(), "Automatischer App-Bau bei GitHub eingerichtet")
 
 # 8. Programm-Ablauf im Browser (wenn Playwright da ist): App-Verbindung simulieren

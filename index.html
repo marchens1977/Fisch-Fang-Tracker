@@ -133,6 +133,11 @@
                     <h3 class="text-sm font-semibold text-white border-b border-neutral-800 pb-2">Häufigste Arten</h3>
                     <div id="stat-species-list" class="space-y-3 text-sm text-neutral-400"></div>
                 </div>
+                <!-- Nur in der Android-App sichtbar -->
+                <div id="app-update-box" class="hidden bg-cardBg p-4 rounded-2xl border border-neutral-800 flex items-center justify-between gap-3">
+                    <span id="app-version" class="text-xs text-neutral-400"></span>
+                    <button onclick="window.AndroidApp.checkUpdate()" class="bg-metsOrange text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-orange-500 transition">Nach Update suchen</button>
+                </div>
             </div>
         </main>
     </div>
@@ -870,6 +875,15 @@
                 renderBackupStatus();
             }
         };
+
+        // In der App: Version und Knopf „Nach Update suchen“ anzeigen
+        if (window.AndroidApp && typeof window.AndroidApp.checkUpdate === 'function') {
+            const box = document.getElementById('app-update-box');
+            let version = '';
+            try { version = window.AndroidApp.getVersion(); } catch (e) {}
+            document.getElementById('app-version').textContent = 'App-Version ' + (version || '?');
+            box.classList.remove('hidden');
+        }
 
         // ---------- Installierbare App: Offline-Helfer anmelden ----------
         if ('serviceWorker' in navigator) {
