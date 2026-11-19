@@ -17,8 +17,8 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | `Startbild.jpg` | Bild auf dem Startbildschirm |
 | `manifest.json` | „Steckbrief“ der App: Name, Symbol, Farben – damit man sie installieren kann |
 | `sw.js` | Offline-Helfer (Service Worker): speichert die App im Handy, damit sie ohne Internet startet |
-| `icons/` | App-Symbole: weiße Angelrute mit gefangenem orangen Fisch auf Mets-Blau |
-| `werkzeuge/symbol_erzeugen.js` | Zeichnet das Symbol und erzeugt daraus alle Symbol-Dateien (Web + Android) |
+| `icons/` | App-Symbole: Ausschnitt aus dem Startbild (Gesicht + Fisch, „Variante A“). `symbol.svg` = alte Zeichnung (Angelrute) als Reserve |
+| `werkzeuge/symbol_erzeugen.js` | Erzeugt alle Symbol-Dateien (Web + Android) aus dem Startbild oder der Zeichnung |
 | `test/pruefung.py` | Automatische Prüfung |
 | `test/app_simulation.js` | Spielt die Android-App im Browser nach (Teil der Prüfung) |
 | `android/` | Eigene **Android-App** (siehe „Android-App“ unten) |
@@ -101,7 +101,9 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - **Zwei Wege, ein Code:** Die Seite bleibt als installierbare Web-App (PWA) online, und
   zusätzlich gibt es eine **richtige Android-App** (Wunsch des Nutzers, 19.11.2026), gebaut wie
   seine Fitness-App. Kein Play Store – die APK wird direkt von GitHub geladen.
-- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v8`) erhöhen,
+- **App-Symbol = Ausschnitt aus dem Startbild** (Gesicht + Fisch), Wunsch des Nutzers 19.11.2026.
+  Die gezeichnete Angelrute bleibt im Werkzeug erhalten (`QUELLE = 'zeichnung'`), falls er zurück will.
+- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v9`) erhöhen,
   damit alte gespeicherte Versionen sicher ersetzt werden.
 
 ## 3. Verlauf
@@ -122,6 +124,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 19.11.2026 | Nutzer hat 1.0.8 installiert. Dauer-Diktat: Sprachaufnahme stoppt nicht mehr bei Pausen, nur bei „Beenden“ | #9 |
 | 19.11.2026 | Diktat verlor nach Pausen den Anfang (Samsung beginnt intern neu) → wird jetzt gesichert. Start-Knopf war unter der Navigationsleiste (Android 15) → Abstand zu den Leisten | #10 |
 | 19.11.2026 | Name überall „Fisch-Fang-Tracker“ (unter dem Symbol, Titel, Kopfzeile) – Wunsch des Nutzers | #11 |
+| 19.11.2026 | App-Symbol = Ausschnitt aus dem Startbild (Variante A: Gesicht + Fisch) – Wunsch des Nutzers | #12 |
 
 ## 4. Offene Ideen / nächste Schritte
 
@@ -178,10 +181,12 @@ den Nutzer am Ende der Antwort:
   `pruefung.py` mit, wenn Java installiert ist.
 - **Android-App:** wird bei jeder Änderung an `android/` von GitHub gebaut – ein
   erfolgreicher Bau ist die Prüfung, dass der Code übersetzbar ist.
-- **`node werkzeuge/symbol_erzeugen.js`** – zeichnet das App-Symbol (Angelrute mit Fisch) und
-  erzeugt daraus `icons/symbol.svg`, die PNG-Symbole der Web-App und das Android-Symbol
-  (`ic_launcher_foreground.xml`). Braucht Playwright. Motiv, Farben, Drehung des Fisches und
-  Größe stehen oben in der Datei – nur dort ändern, nie die erzeugten Dateien von Hand.
+- **`node werkzeuge/symbol_erzeugen.js`** – erzeugt alle App-Symbole: die PNG-Symbole der Web-App
+  (auch `icon-maskable-512.png` mit blauem Rand für runde Formen), das Android-Symbol
+  (`ic_launcher_foreground.xml` + `drawable-nodpi/ic_launcher_bild.png`) und `icons/symbol.svg`
+  (Zeichnung). Oben in der Datei: `QUELLE` (`'startbild'` oder `'zeichnung'`), `AUSSCHNITT`
+  (welcher Teil des Startbilds, in Pixeln) sowie Motiv/Farben der Zeichnung. Braucht Playwright.
+  Nur dort ändern, nie die erzeugten Dateien von Hand.
 - Vorschau-Bilder: Claude kann die App in der Sitzung mit Playwright im Handy-Format
   fotografieren; die Design-Bausteine aus dem Internet sind dort gesperrt und werden
   dafür lokal nachgebaut (nur für die Vorschau, nicht im Projekt).
@@ -190,13 +195,15 @@ den Nutzer am Ende der Antwort:
 - App auf dem Handy in Chrome öffnen und einen Fang per Sprache eintragen.
 - Standort zentrieren auf dem Handy ausprobieren (braucht GPS).
 - [ ] App in Chrome öffnen → Menü (⋮) → „App installieren“ bzw. „Zum Startbildschirm hinzufügen“.
-- [ ] Auf dem Startbildschirm erscheint das Symbol (Angelrute mit orangem Fisch auf Blau).
+- [ ] Auf dem Startbildschirm erscheint das Symbol (Ausschnitt aus dem Startbild: Gesicht + Fisch).
+      Evtl. alte Verknüpfung entfernen und App neu hinzufügen, damit das neue Symbol kommt.
 - [ ] App über das Symbol öffnen: keine Adressleiste, Statusleiste oben blau.
 - [ ] Farben: Blau/Orange überall, Mikrofon-Knopf orange.
 - [ ] Flugmodus an → App öffnen: Sie startet, Liste und Statistik gehen (Karte bleibt grau).
 - **Android-App:**
 - [ ] APK herunterladen und installieren (Play Protect: „App scannen“ reicht).
-- [ ] Symbol mit Namen „Fisch-Fang-Tracker“ (Angelrute mit orangem Fisch auf Blau) erscheint in der App-Liste, nichts abgeschnitten.
+- [ ] Nach dem App-Update: Symbol mit Namen „Fisch-Fang-Tracker“ zeigt den Ausschnitt aus dem Startbild
+      (Gesicht + Fisch), rund, nichts Wichtiges abgeschnitten.
 - [ ] App öffnen: keine Adressleiste; Frage nach Standort-Erlaubnis → erlauben → Standort auf der Karte.
 - [ ] Mikrofon-Knopf: Fenster „Zuhören aktiv“, beim ersten Mal Mikrofon erlauben. Mit Pausen sprechen
       (z. B. „Zander … 65 Zentimeter … am Rhein“) → Text erscheint laufend, Aufnahme läuft weiter.

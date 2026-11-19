@@ -49,6 +49,9 @@ pruefe({"192x192", "512x512"} <= groessen, "Symbole in 192 und 512 Pixel (nötig
 pruefe((ROOT / "icons/symbol.svg").exists(), "Vorlage des Symbols vorhanden (icons/symbol.svg)")
 fg = (ROOT / "android/app/src/main/res/drawable/ic_launcher_foreground.xml").read_text(encoding="utf-8")
 pruefe("symbol_erzeugen.js" in fg, "Android-Symbol stammt aus derselben Vorlage wie die Web-Symbole")
+if "@drawable/ic_launcher_bild" in fg:
+    pruefe((ROOT / "android/app/src/main/res/drawable-nodpi/ic_launcher_bild.png").exists(),
+           "Android-Symbol (Bild aus dem Startbild) vorhanden: drawable-nodpi/ic_launcher_bild.png")
 pruefe(any("maskable" in i.get("purpose", "") for i in m.get("icons", [])), "Symbol für runde Android-Form (maskable)")
 
 # 3. index.html verweist auf alles
