@@ -33,9 +33,11 @@ function lokal(datei) {
   // So sieht die Android-App für die Webseite aus:
   await page.addInitScript(() => {
     localStorage.clear();
-    window.__app = { speech: 0, saved: null, updateChecks: 0 };
+    window.__app = { speech: 0, dictStart: 0, dictStop: 0, saved: null, updateChecks: 0 };
     window.AndroidApp = {
       startSpeech() { window.__app.speech++; },
+      startDictation() { window.__app.dictStart++; },
+      stopDictation() { window.__app.dictStop++; },
       saveFile(name, content) { window.__app.saved = { name, content }; },
       getVersion() { return '1.0.4'; },
       checkUpdate() { window.__app.updateChecks++; },
@@ -54,11 +56,27 @@ function lokal(datei) {
   let ok = true;
   const pruefe = (bed, text) => { console.log((bed ? 'OK    ' : 'FEHLER') + '  Simulation: ' + text); if (!bed) ok = false; };
 
-  // 1. Mikrofon-Knopf ruft die Spracherkennung des Handys auf
+  // 1. Dauer-Diktat: Mikrofon öffnet das Fenster, App hört zu, bis „Beenden“ gedrückt wird
   await page.click('button[title="Sprachfang"]');
-  const st = await page.evaluate(() => ({ n: window.__app.speech, overlay: !document.getElementById('voice-overlay').classList.contains('hidden') }));
-  pruefe(st.n === 1, 'Mikrofon-Knopf startet die Handy-Spracherkennung');
-  pruefe(!st.overlay, 'kein Browser-Sprachfenster in der App');
+  let st = await page.evaluate(() => ({ start: window.__app.dictStart, alt: window.__app.speech,
+    overlay: !document.getElementById('voice-overlay').classList.contains('hidden') }));
+  pruefe(st.start === 1 && st.alt === 0, 'Mikrofon-Knopf startet das Dauer-Diktat der App');
+  pruefe(st.overlay, 'Fenster „Zuhören aktiv“ mit Beenden-Knopf ist offen');
+  await page.evaluate(() => window.FischNativeApp.onDictation('Zander 65'));
+  const zwischen = await page.evaluate(() => document.getElementById('voice-transcript').innerText);
+  pruefe(zwischen.includes('Zander 65'), 'bisher erkannter Text wird angezeigt');
+  await page.click('text=Aufnahme beenden & Speichern');
+  st = await page.evaluate(() => ({ stop: window.__app.dictStop,
+    overlay: !document.getElementById('voice-overlay').classList.contains('hidden') }));
+  pruefe(st.stop === 1 && !st.overlay, '„Beenden & Speichern“ beendet das Diktat in der App');
+
+  // 1b. Ältere App-Version (ohne Dauer-Diktat): einfaches Sprachfenster
+  await page.evaluate(() => { window.__startDictation = window.AndroidApp.startDictation; delete window.AndroidApp.startDictation; });
+  await page.click('button[title="Sprachfang"]');
+  st = await page.evaluate(() => ({ alt: window.__app.speech,
+    overlay: !document.getElementById('voice-overlay').classList.contains('hidden') }));
+  pruefe(st.alt === 1 && !st.overlay, 'ältere App-Version nutzt weiter das einfache Sprachfenster');
+  await page.evaluate(() => { window.AndroidApp.startDictation = window.__startDictation; });
 
   // 2. Erkannter Text kommt zurück und wird als Fang gespeichert
   await page.evaluate(() => window.FischNativeApp.onSpeech('Zander 65 Zentimeter'));
