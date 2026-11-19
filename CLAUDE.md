@@ -46,6 +46,11 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
     angezeigt. Erst „Aufnahme beenden & Speichern“ → `AndroidApp.stopDictation()` → die App
     schickt den ganzen Text an `FischNativeApp.onSpeech(text)` → gleiche Auswertung wie bisher.
     Fehler (z. B. kein Internet) → `FischNativeApp.onDictationStatus(meldung)`.
+    **Samsung-Besonderheit:** Die Erkennung fängt nach einer Sprechpause oft *innerhalb derselben
+    Runde* wieder bei null an, und das Endergebnis enthält nur den letzten Abschnitt. Die Regeln in
+    `DictationMerge.java` erkennen diesen Neubeginn und sichern das vorher Gesagte (ohne Doppelungen).
+  - **Leisten:** Ab Android 15 zeichnet die App bis unter Status- und Navigationsleiste. Die
+    Seite bekommt deshalb in `MainActivity` (`applyBarInsets`) Abstand zu den Leisten und zur Tastatur.
     Braucht die Mikrofon-Erlaubnis (`RECORD_AUDIO`, Android fragt beim ersten Mal).
     Ältere App-Versionen haben nur `startSpeech()` (einfaches Google-Sprachfenster, stoppt bei
     Pausen) – die Seite nutzt das automatisch, solange die App nicht aktualisiert ist.
@@ -96,7 +101,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - **Zwei Wege, ein Code:** Die Seite bleibt als installierbare Web-App (PWA) online, und
   zusätzlich gibt es eine **richtige Android-App** (Wunsch des Nutzers, 19.11.2026), gebaut wie
   seine Fitness-App. Kein Play Store – die APK wird direkt von GitHub geladen.
-- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v6`) erhöhen,
+- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v7`) erhöhen,
   damit alte gespeicherte Versionen sicher ersetzt werden.
 
 ## 3. Verlauf
@@ -115,6 +120,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 19.11.2026 | App sucht selbst nach Updates und bietet sie sofort an (Wunsch des Nutzers) | #7 |
 | 19.11.2026 | Play Protect blockierte 1.0.6 → Selbst-Installation entfernt, Download über Browser; Name „Fischfang Tracker“ | #8 |
 | 19.11.2026 | Nutzer hat 1.0.8 installiert. Dauer-Diktat: Sprachaufnahme stoppt nicht mehr bei Pausen, nur bei „Beenden“ | #9 |
+| 19.11.2026 | Diktat verlor nach Pausen den Anfang (Samsung beginnt intern neu) → wird jetzt gesichert. Start-Knopf war unter der Navigationsleiste (Android 15) → Abstand zu den Leisten | #10 |
 
 ## 4. Offene Ideen / nächste Schritte
 
@@ -166,6 +172,9 @@ den Nutzer am Ende der Antwort:
   oder in Claudes Sitzung lokal per `npm i leaflet@1.9.4` in einem Hilfsordner und
   `NODE_PATH="$NODE_PATH:<Hilfsordner>/node_modules" python3 test/pruefung.py`.
   Fehlt Leaflet, wird die Simulation mit Hinweis übersprungen.
+- **`test/DiktatTest.java`** – spielt Abläufe der Spracherkennung nach (z. B. Samsung: Neubeginn
+  nach Pause) und prüft, dass kein Wort verloren geht und nichts doppelt ist. Läuft automatisch in
+  `pruefung.py` mit, wenn Java installiert ist.
 - **Android-App:** wird bei jeder Änderung an `android/` von GitHub gebaut – ein
   erfolgreicher Bau ist die Prüfung, dass der Code übersetzbar ist.
 - **`node werkzeuge/symbol_erzeugen.js`** – zeichnet das App-Symbol (Angelrute mit Fisch) und
@@ -191,6 +200,10 @@ den Nutzer am Ende der Antwort:
 - [ ] Mikrofon-Knopf: Fenster „Zuhören aktiv“, beim ersten Mal Mikrofon erlauben. Mit Pausen sprechen
       (z. B. „Zander … 65 Zentimeter … am Rhein“) → Text erscheint laufend, Aufnahme läuft weiter.
       „Aufnahme beenden & Speichern“ → Fang mit Art, Länge und ganzem Text als Notiz.
+- [ ] Nach App-Update (Diktat-Korrektur): Mit langen Pausen sprechen → der Anfang bleibt im Fenster
+      stehen und wird beim Speichern komplett übernommen.
+- [ ] Startbildschirm: „Karte öffnen & Starten“ ist ganz zu sehen, nicht unter der Navigationsleiste.
+      Auch unten die Navigation der App und oben die Kopfzeile sind nicht verdeckt.
 - [ ] „Sichern“: Speicherort wählen, Datei wird gespeichert, Hinweis „zuletzt gesichert“ ist aktuell.
 - [ ] „Hinzufügen“: Sicherung aus Chrome laden → Fänge erscheinen in der App.
 - [ ] Statistik: unten steht „App-Version 1.0.N“ und der Knopf „Nach Update suchen“ → Meldung „neueste Version“.
