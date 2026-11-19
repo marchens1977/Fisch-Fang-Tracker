@@ -1,6 +1,6 @@
 // Service Worker: sorgt dafür, dass die App auch ohne Internet startet.
 // Bei Änderungen an der App die Versionsnummer erhöhen.
-const VERSION = 'fischfang-v8';
+const VERSION = 'fischfang-v9';
 const APP_DATEIEN = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const APP_DATEIEN = [
   './Startbild.jpg',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
   './icons/favicon.png'
 ];

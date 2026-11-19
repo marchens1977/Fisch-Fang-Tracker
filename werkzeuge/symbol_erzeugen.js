@@ -1,12 +1,20 @@
-// Zeichnet das App-Symbol (Angelrute mit gefangenem Fisch) und erzeugt daraus:
-//   icons/symbol.svg, icons/icon-192.png, icons/icon-512.png, icons/apple-touch-icon.png, icons/favicon.png
-//   android/app/src/main/res/drawable/ic_launcher_foreground.xml
+// Erzeugt das App-Symbol und daraus:
+//   icons/icon-192.png, icons/icon-512.png, icons/icon-maskable-512.png, icons/apple-touch-icon.png, icons/favicon.png
+//   android/app/src/main/res/drawable/ic_launcher_foreground.xml (+ drawable-nodpi/ic_launcher_bild.png bei QUELLE 'startbild')
+//   icons/symbol.svg = die gezeichnete Angelrute (bleibt immer als Vorlage erhalten)
+// QUELLE wählt das Motiv:
+//   'startbild'  = Ausschnitt aus Startbild.jpg (AUSSCHNITT, in Pixeln des Startbilds) – Wunsch des Nutzers ab 19.11.2026
+//   'zeichnung'  = gezeichnete Angelrute mit gefangenem Fisch (MOTIV unten) – das frühere Symbol
 // Start (im Projektordner): node werkzeuge/symbol_erzeugen.js     (braucht Playwright mit Chromium)
 // Das Motiv steht unten in MOTIV, Koordinaten 0..100. Alles bleibt im Kreis mit Radius 40 um die Mitte,
 // damit Android und Chrome es bei runden Symbolen nicht abschneiden.
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
+
+const QUELLE = 'startbild';
+// Variante A: Gesicht + Fisch. Quadrat: links/oben-Ecke und Kantenlänge im 768x1024 großen Startbild.
+const AUSSCHNITT = { x: 0, y: 180, groesse: 768 };
 
 const BLAU = '#002D72', ORANGE = '#FF5910', ORANGE_DUNKEL = '#D9440A', WEISS = '#FFFFFF';
 
@@ -86,20 +94,63 @@ ${teile.join('\n')}
 `;
 }
 
+// ---- Symbol aus dem Startbild ----
+const bildDatenUrl = () => 'data:image/jpeg;base64,' + fs.readFileSync(path.join(ROOT, 'Startbild.jpg')).toString('base64');
+
+// HTML: Ausschnitt des Startbilds auf einer Fläche "groesse", mit Rand "rand" (Anteil 0..0.5) in Blau.
+function bildHtml(groesse, rand = 0, ecken = 0) {
+  const innen = groesse * (1 - 2 * rand);
+  const f = innen / AUSSCHNITT.groesse;
+  return `<html><body style="margin:0;background:transparent">
+<div style="width:${groesse}px;height:${groesse}px;background:${rand ? BLAU : 'transparent'};position:relative;overflow:hidden;border-radius:${ecken}%">
+<div style="position:absolute;left:${groesse * rand}px;top:${groesse * rand}px;width:${innen}px;height:${innen}px;
+background:url(${bildDatenUrl()}) no-repeat;background-size:${768 * f}px ${1024 * f}px;
+background-position:${-AUSSCHNITT.x * f}px ${-AUSSCHNITT.y * f}px"></div></div></body></html>`;
+}
+
+function androidBitmapXml() {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<!-- Ausschnitt aus dem Startbild (Variante A). Erzeugt von werkzeuge/symbol_erzeugen.js – nicht von Hand ändern.
+     Das Bild drawable-nodpi/ic_launcher_bild.png hat 108x108-Raster: Ausschnitt in der sichtbaren Mitte (72), Rand blau. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_launcher_bild"
+    android:filter="true" />
+`;
+}
+
+async function foto(page, html, groesse, ziel) {
+  await page.setViewportSize({ width: groesse, height: groesse });
+  await page.setContent(html);
+  await page.waitForFunction(() => document.readyState === 'complete');
+  await page.screenshot({ path: ziel, omitBackground: true });
+}
+
 (async () => {
   const { chromium } = require('playwright');
   fs.mkdirSync(path.join(ROOT, 'icons'), { recursive: true });
   fs.writeFileSync(path.join(ROOT, 'icons/symbol.svg'), svg(512));
-  fs.writeFileSync(path.join(ROOT, 'android/app/src/main/res/drawable/ic_launcher_foreground.xml'), androidXml());
+  const res = path.join(ROOT, 'android/app/src/main/res');
+  const bildPng = path.join(res, 'drawable-nodpi/ic_launcher_bild.png');
 
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  const ziele = [['icon-192.png', 192, false], ['icon-512.png', 512, false], ['apple-touch-icon.png', 180, false], ['favicon.png', 64, true]];
-  for (const [name, g, rund] of ziele) {
-    await page.setViewportSize({ width: g, height: g });
-    await page.setContent(`<html><body style="margin:0;background:transparent">${svg(g, rund)}</body></html>`);
-    await page.screenshot({ path: path.join(ROOT, 'icons', name), omitBackground: true });
+  if (QUELLE === 'startbild') {
+    const ziele = [['icon-192.png', 192, 0, 0], ['icon-512.png', 512, 0, 0], ['apple-touch-icon.png', 180, 0, 0],
+      ['favicon.png', 64, 0, 22],
+      // "maskable": Android/Chrome schneidet rund zu – Bild in die sichere Mitte (80 %), Rand blau
+      ['icon-maskable-512.png', 512, 0.1, 0]];
+    for (const [name, g, rand, ecken] of ziele) await foto(page, bildHtml(g, rand, ecken), g, path.join(ROOT, 'icons', name));
+    fs.mkdirSync(path.dirname(bildPng), { recursive: true });
+    await foto(page, bildHtml(432, 1 / 6), 432, bildPng);
+    fs.writeFileSync(path.join(res, 'drawable/ic_launcher_foreground.xml'), androidBitmapXml());
+  } else {
+    fs.writeFileSync(path.join(res, 'drawable/ic_launcher_foreground.xml'), androidXml());
+    if (fs.existsSync(bildPng)) fs.unlinkSync(bildPng);
+    const ziele = [['icon-192.png', 192, false], ['icon-512.png', 512, false], ['icon-maskable-512.png', 512, false],
+      ['apple-touch-icon.png', 180, false], ['favicon.png', 64, true]];
+    for (const [name, g, rund] of ziele)
+      await foto(page, `<html><body style="margin:0;background:transparent">${svg(g, rund)}</body></html>`, g, path.join(ROOT, 'icons', name));
   }
   await browser.close();
-  console.log('Symbole erzeugt: icons/ und android/.../ic_launcher_foreground.xml');
+  console.log(`Symbole erzeugt (Quelle: ${QUELLE}): icons/ und android/.../res/`);
 })();
