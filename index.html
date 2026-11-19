@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#002D72">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icons/favicon.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Fischfang">
     <title>Fischfang Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,9 +18,17 @@
             theme: {
                 extend: {
                     colors: {
-                        darkBg: '#000000',
-                        cardBg: '#121212',
-                        accent: '#ffffff'
+                        // New-York-Mets-Farben: Blau #002D72 und Orange #FF5910
+                        darkBg: '#001433',
+                        cardBg: '#002D72',
+                        accent: '#FF5910',
+                        metsBlue: '#002D72',
+                        metsOrange: '#FF5910',
+                        black: '#001433',
+                        neutral: {
+                            200: '#e3e9f5', 300: '#c7d2e6', 400: '#a3b4d4', 500: '#7f93bb',
+                            600: '#5a6f9c', 700: '#2f4f8f', 800: '#1f4185', 900: '#0b2a63'
+                        }
                     }
                 }
             }
@@ -27,23 +41,23 @@
         .dark-map .leaflet-layer {
             filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
         }
-        .nav-btn { color: #737373; transition: color .15s; }
-        .nav-btn.active { color: #ffffff; }
-        .bar-fill { background: linear-gradient(90deg, #3b82f6, #0ea5e9); }
+        .nav-btn { color: #7f93bb; transition: color .15s; }
+        .nav-btn.active { color: #FF5910; }
+        .bar-fill { background: linear-gradient(90deg, #FF5910, #ff8a4c); }
     </style>
 </head>
 <body class="bg-darkBg text-white min-h-screen font-sans">
 
     <!-- Startbildschirm -->
-    <div id="screen-welcome" class="fixed inset-0 z-50 flex flex-col items-center justify-between p-6 text-center bg-black bg-cover bg-center" style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.9)), url('Startbild.jpg');">
+    <div id="screen-welcome" class="fixed inset-0 z-50 flex flex-col items-center justify-between p-6 text-center bg-black bg-cover bg-center" style="background-image: linear-gradient(to bottom, rgba(0,45,114,0.55), rgba(0,20,51,0.95)), url('Startbild.jpg');">
         <div></div>
         <div class="space-y-3">
-            <i data-lucide="fish" class="text-white w-16 h-16 mx-auto"></i>
+            <img src="icons/icon-192.png" alt="" class="w-20 h-20 mx-auto rounded-2xl shadow-xl ring-2 ring-metsOrange/60">
             <h1 class="text-3xl font-extrabold tracking-tight drop-shadow-md">Fischfang Tracker</h1>
             <p class="text-sm text-neutral-300 drop-shadow">designed by MZ-Fishing</p>
         </div>
         <div class="w-full max-w-xs space-y-3">
-            <button onclick="startApp()" class="w-full bg-white text-black font-semibold py-3.5 px-6 rounded-2xl shadow-xl hover:bg-neutral-200 transition flex items-center justify-center space-x-2">
+            <button onclick="startApp()" class="w-full bg-metsOrange text-white font-semibold py-3.5 px-6 rounded-2xl shadow-xl hover:bg-orange-500 transition flex items-center justify-center space-x-2">
                 <i data-lucide="map" class="w-5 h-5"></i>
                 <span>Karte öffnen &amp; Starten</span>
             </button>
@@ -54,8 +68,8 @@
     <div id="app-container" class="hidden pb-32">
         <header class="bg-cardBg/95 backdrop-blur border-b border-neutral-800 sticky top-0 z-40 px-4 py-3">
             <div class="max-w-md mx-auto flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/40 flex items-center justify-center">
-                    <i data-lucide="fish" class="text-blue-400 w-5 h-5"></i>
+                <div class="w-9 h-9 rounded-xl bg-metsOrange/15 border border-metsOrange/50 flex items-center justify-center">
+                    <i data-lucide="fish" class="text-metsOrange w-5 h-5"></i>
                 </div>
                 <div>
                     <h1 class="text-base font-bold leading-tight">Fischfang Tracker</h1>
@@ -80,10 +94,10 @@
                 <div class="flex justify-between items-center gap-2 px-1">
                     <span id="catch-count" class="text-xs text-neutral-400 font-medium">0 Fänge erfasst</span>
                     <div class="flex items-center gap-2">
-                        <select id="filter-species" onchange="renderCatches()" class="bg-cardBg border border-neutral-800 text-xs rounded-xl px-2.5 py-1.5 text-white focus:outline-none focus:border-white">
+                        <select id="filter-species" onchange="renderCatches()" class="bg-cardBg border border-neutral-800 text-xs rounded-xl px-2.5 py-1.5 text-white focus:outline-none focus:border-metsOrange">
                             <option value="">Alle Arten</option>
                         </select>
-                        <button onclick="openModalNew()" class="bg-white text-black text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-neutral-200 transition">+ Fang</button>
+                        <button onclick="openModalNew()" class="bg-metsOrange text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-orange-500 transition">+ Fang</button>
                     </div>
                 </div>
 
@@ -136,7 +150,7 @@
                 <i data-lucide="bar-chart-2" class="w-5 h-5"></i><span>Statistik</span>
             </button>
             <div class="flex flex-col items-center">
-                <button onclick="startVoiceRecording()" class="-mt-7 w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-xl flex items-center justify-center transition" title="Sprachfang">
+                <button onclick="startVoiceRecording()" class="-mt-7 w-14 h-14 rounded-full bg-metsOrange hover:bg-orange-500 text-white shadow-xl ring-4 ring-metsBlue flex items-center justify-center transition" title="Sprachfang">
                     <i data-lucide="mic" class="w-6 h-6"></i>
                 </button>
                 <span class="text-neutral-400 mt-1">Sprache</span>
@@ -147,11 +161,11 @@
     <!-- Sprachaufnahme -->
     <div id="voice-overlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-6 text-center space-y-4">
         <div class="w-20 h-20 bg-neutral-900 border border-neutral-700 rounded-full flex items-center justify-center animate-pulse">
-            <i data-lucide="mic" class="w-10 h-10 text-red-500"></i>
+            <i data-lucide="mic" class="w-10 h-10 text-metsOrange"></i>
         </div>
         <h2 class="text-xl font-bold">Zuhören aktiv...</h2>
         <p id="voice-transcript" class="text-sm text-neutral-400 italic max-w-xs min-h-[3rem]">Sprich jetzt deinen Satz. Die Aufnahme stoppt erst beim Klick auf Beenden.</p>
-        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-white text-black font-semibold py-3 px-8 rounded-2xl text-sm shadow-xl hover:bg-neutral-200 transition">Aufnahme beenden &amp; Speichern</button>
+        <button onclick="stopVoiceRecordingManual()" class="mt-4 bg-metsOrange text-white font-semibold py-3 px-8 rounded-2xl text-sm shadow-xl hover:bg-orange-500 transition">Aufnahme beenden &amp; Speichern</button>
     </div>
 
     <!-- Fang-Formular -->
@@ -171,7 +185,7 @@
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-400 mb-1">Fischart</label>
-                    <input type="text" id="species" required list="species-suggestions" placeholder="z.B. Zander, Hecht, Barsch" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    <input type="text" id="species" required list="species-suggestions" placeholder="z.B. Zander, Hecht, Barsch" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-metsOrange">
                     <datalist id="species-suggestions">
                         <option value="Zander">
                         <option value="Hecht">
@@ -184,7 +198,7 @@
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-400 mb-1">Länge (cm)</label>
-                    <input type="number" step="0.1" min="0" id="length" placeholder="z.B. 65" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    <input type="number" step="0.1" min="0" id="length" placeholder="z.B. 65" class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-metsOrange">
                 </div>
 
                 <div>
@@ -194,16 +208,16 @@
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-400 mb-1">Datum &amp; Uhrzeit</label>
-                    <input type="datetime-local" id="datetime" required class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+                    <input type="datetime-local" id="datetime" required class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-metsOrange">
                 </div>
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-400 mb-1">Freitext / Notizen</label>
-                    <textarea id="notes" rows="3" placeholder="Besonderheiten, Wassertiefe, Köder..." class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white resize-none"></textarea>
+                    <textarea id="notes" rows="3" placeholder="Besonderheiten, Wassertiefe, Köder..." class="w-full bg-black border border-neutral-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-metsOrange resize-none"></textarea>
                 </div>
 
                 <div class="pt-2 space-y-2">
-                    <button type="submit" class="w-full bg-white text-black font-semibold py-3 rounded-xl transition hover:bg-neutral-200">Fang speichern</button>
+                    <button type="submit" class="w-full bg-metsOrange text-white font-semibold py-3 rounded-xl transition hover:bg-orange-500">Fang speichern</button>
                     <button type="button" id="btn-delete" onclick="deleteFromModal()" class="hidden w-full bg-neutral-900 border border-neutral-800 text-red-400 font-medium py-3 rounded-xl transition hover:bg-neutral-800">Fang löschen</button>
                 </div>
             </form>
@@ -325,7 +339,7 @@
             } else {
                 userMarker = L.circleMarker([currentPosition.lat, currentPosition.lng], {
                     radius: 8,
-                    fillColor: '#3b82f6',
+                    fillColor: '#FF5910',
                     color: '#ffffff',
                     weight: 2,
                     fillOpacity: 1
@@ -696,8 +710,8 @@
             catchMarkers = [];
 
             const fishIcon = L.divIcon({
-                html: `<div class="bg-cardBg border border-blue-500 rounded-full p-1 shadow-lg flex items-center justify-center">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                html: `<div class="bg-cardBg border border-metsOrange rounded-full p-1 shadow-lg flex items-center justify-center">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF5910" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                <path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.14 0 6 2.46 6 6s-2.86 6-6 6c-3.56 0-7.56-2.54-8.5-6Z"/>
                                <path d="M18 12v.5"/>
                                <path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/>
@@ -717,7 +731,7 @@
                     const marker = L.marker([c.lat, c.lng], { icon: fishIcon }).addTo(map);
                     marker.bindPopup(
                         `<b>${esc(c.species)}</b><br>${c.length ? esc(c.length) + ' cm' : ''}<br>` +
-                        `<button type="button" data-action="edit" data-id="${esc(c.id)}" style="color:#0ea5e9;text-decoration:underline;background:none;border:0;padding:0;margin-top:4px;cursor:pointer;">Details öffnen</button>`
+                        `<button type="button" data-action="edit" data-id="${esc(c.id)}" style="color:#FF5910;text-decoration:underline;background:none;border:0;padding:0;margin-top:4px;cursor:pointer;">Details öffnen</button>`
                     );
                     marker.on('click', () => openModalEdit(c.id));
                     catchMarkers.push(marker);
@@ -780,7 +794,7 @@
                     <div class="flex justify-between items-start gap-2">
                         <div class="min-w-0">
                             <p class="text-sm font-semibold text-white truncate">${esc(c.species)}</p>
-                            <p class="text-2xl font-bold text-blue-400 leading-tight">${c.length ? esc(c.length) + ' cm' : '<span class="text-neutral-600 text-base">Länge unbekannt</span>'}</p>
+                            <p class="text-2xl font-bold text-metsOrange leading-tight">${c.length ? esc(c.length) + ' cm' : '<span class="text-neutral-600 text-base">Länge unbekannt</span>'}</p>
                         </div>
                         <div class="flex shrink-0">
                             <button type="button" data-action="edit" data-id="${id}" class="p-2 text-neutral-400 hover:text-white transition rounded-lg" aria-label="Bearbeiten"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
@@ -827,6 +841,13 @@
                         <div class="bar-fill h-full rounded-full" style="width: ${Math.round((count / top) * 100)}%"></div>
                     </div>
                 </div>`).join('');
+        }
+
+        // ---------- Installierbare App: Offline-Helfer anmelden ----------
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            });
         }
     </script>
 </body>
