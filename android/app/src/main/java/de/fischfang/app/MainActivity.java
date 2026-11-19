@@ -15,7 +15,10 @@ import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.view.View;
+import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -62,6 +65,9 @@ public class MainActivity extends Activity {
     private boolean dictating = false;
     private final StringBuilder dictationText = new StringBuilder();
     private String lastPartial = "";
+    // Text, der in der laufenden Runde schon gesichert wurde (weil die Erkennung nach einer
+    // Pause intern neu angefangen hat). Wird gebraucht, damit das Endergebnis nichts doppelt.
+    private final StringBuilder sessionCommitted = new StringBuilder();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +77,14 @@ public class MainActivity extends Activity {
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.parseColor("#001433"));
-        setContentView(webView);
+        // Ab Android 15 zeichnet die App bis unter die Leisten (Uhrzeit oben, Navigation unten).
+        // Damit nichts verdeckt wird (z. B. der Start-Knopf), bekommt die Seite Abstand zu den Leisten.
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(Color.parseColor("#002D72"));
+        root.addView(webView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        root.setOnApplyWindowInsetsListener(this::applyBarInsets);
+        setContentView(root);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -89,6 +102,24 @@ public class MainActivity extends Activity {
 
         updates = new UpdateChecker(this);
         updates.autoCheck(); // von selbst nach Update suchen
+    }
+
+    /** Abstand zu Status-, Navigationsleiste und Tastatur, damit die Seite nicht darunter liegt. */
+    private WindowInsets applyBarInsets(View v, WindowInsets insets) {
+        int top, bottom, left, right;
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+            android.graphics.Insets ime = insets.getInsets(WindowInsets.Type.ime());
+            top = bars.top; left = bars.left; right = bars.right;
+            bottom = Math.max(bars.bottom, ime.bottom);
+        } else {
+            top = insets.getSystemWindowInsetTop();
+            bottom = insets.getSystemWindowInsetBottom();
+            left = insets.getSystemWindowInsetLeft();
+            right = insets.getSystemWindowInsetRight();
+        }
+        v.setPadding(left, top, right, bottom);
+        return insets;
     }
 
     @Override
@@ -194,6 +225,8 @@ public class MainActivity extends Activity {
 
     private void listen() {
         if (!dictating) return;
+        sessionCommitted.setLength(0);
+        lastPartial = "";
         if (recognizer == null) {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this);
             recognizer.setRecognitionListener(listener);
@@ -254,16 +287,29 @@ public class MainActivity extends Activity {
 
         @Override public void onPartialResults(Bundle b) {
             ArrayList<String> t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (t != null && !t.isEmpty() && t.get(0) != null && !t.get(0).isEmpty()) {
-                lastPartial = t.get(0);
+            if (t != null && !t.isEmpty() && t.get(0) != null && !t.get(0).trim().isEmpty()) {
+                String neu = t.get(0).trim();
+                // Manche Handys (z. B. Samsung) fangen nach einer Sprechpause innerhalb derselben
+                // Runde wieder bei null an. Dann das bisher Gesagte sichern, statt es zu überschreiben.
+                if (DictationMerge.isRestart(lastPartial, neu)) {
+                    appendDictation(lastPartial);
+                    if (sessionCommitted.length() > 0) sessionCommitted.append(' ');
+                    sessionCommitted.append(lastPartial.trim());
+                }
+                lastPartial = neu;
                 showDictation();
             }
         }
 
         @Override public void onResults(Bundle b) {
             ArrayList<String> t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            String fin = (t != null && !t.isEmpty() && t.get(0) != null) ? t.get(0).trim() : "";
+            // Endergebnis enthält oft nur den letzten Abschnitt; falls es doch alles enthält,
+            // den schon gesicherten Anfang abschneiden (sonst doppelt).
+            fin = DictationMerge.stripCommitted(sessionCommitted.toString(), fin);
+            if (fin.isEmpty()) fin = lastPartial; // nichts verlieren
             lastPartial = "";
-            if (t != null && !t.isEmpty()) appendDictation(t.get(0));
+            appendDictation(fin);
             showDictation();
             listen(); // gleich weiter zuhören
         }

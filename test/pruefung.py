@@ -131,6 +131,26 @@ pruefe('<string name="app_name">Fischfang Tracker</string>' in (A / "app/src/mai
 pruefe(m.get("short_name") == "Fischfang Tracker", "Web-App: Name unter dem Symbol ist „Fischfang Tracker“")
 pruefe((ROOT / ".github/workflows/android-app.yml").exists(), "Automatischer App-Bau bei GitHub eingerichtet")
 
+pruefe("setOnApplyWindowInsetsListener" in java,
+       "Android: Seite hält Abstand zu Status- und Navigationsleiste (Start-Knopf nicht verdeckt)")
+pruefe("DictationMerge.isRestart" in java,
+       "Android: Diktat sichert Text, wenn die Erkennung nach einer Pause neu anfängt")
+
+# 7b. Diktat-Regeln mit nachgespielten Abläufen prüfen (wenn Java da ist)
+javac, javab = shutil.which("javac"), shutil.which("java")
+if javac and javab:
+    with tempfile.TemporaryDirectory() as tmp:
+        r = subprocess.run([javac, "-encoding", "UTF-8", "-d", tmp,
+                            str(A / "app/src/main/java/de/fischfang/app/DictationMerge.java"),
+                            str(ROOT / "test/DiktatTest.java")], capture_output=True, text=True)
+        if r.returncode == 0:
+            r = subprocess.run([javab, "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-cp", tmp,
+                                "de.fischfang.app.DiktatTest"], capture_output=True, text=True, encoding="utf-8")
+            print(r.stdout.strip())
+        pruefe(r.returncode == 0, "Diktat: kein Wort geht bei Sprechpausen verloren" + ("" if r.returncode == 0 else ": " + r.stderr[-500:]))
+else:
+    print("HINWEIS  Java nicht installiert – Diktat-Prüfung übersprungen")
+
 # 8. Programm-Ablauf im Browser (wenn Playwright da ist): App-Verbindung simulieren
 if node and (ROOT / "test/app_simulation.js").exists():
     r = subprocess.run([node, str(ROOT / "test/app_simulation.js")], capture_output=True, text=True, cwd=ROOT)
