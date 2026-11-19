@@ -1,4 +1,4 @@
-"""Automatische Prüfung für den Fischfang Tracker.
+"""Automatische Prüfung für den Fisch-Fang-Tracker.
 Start (im Projektordner):  python3 test/pruefung.py
 Prüft: App-Steckbrief (manifest.json), Symbole, Offline-Helfer (sw.js),
 Verweise in index.html, Mets-Farben, ob der Programmcode fehlerfrei lesbar ist (wenn node da ist),
@@ -126,9 +126,9 @@ if upd.exists():
     pruefe("updates.autoCheck()" in java, "App sucht beim Start von selbst nach Updates")
 pruefe("REQUEST_INSTALL_PACKAGES" not in am,
        "Android: KEINE Erlaubnis „andere Apps installieren“ (sonst blockiert Google Play Protect die App)")
-pruefe('<string name="app_name">Fischfang Tracker</string>' in (A / "app/src/main/res/values/strings.xml").read_text(encoding="utf-8"),
-       "Android: Name unter dem Symbol ist „Fischfang Tracker“")
-pruefe(m.get("short_name") == "Fischfang Tracker", "Web-App: Name unter dem Symbol ist „Fischfang Tracker“")
+pruefe('<string name="app_name">Fisch-Fang-Tracker</string>' in (A / "app/src/main/res/values/strings.xml").read_text(encoding="utf-8"),
+       "Android: Name unter dem Symbol ist „Fisch-Fang-Tracker“")
+pruefe(m.get("short_name") == "Fisch-Fang-Tracker", "Web-App: Name unter dem Symbol ist „Fisch-Fang-Tracker“")
 pruefe((ROOT / ".github/workflows/android-app.yml").exists(), "Automatischer App-Bau bei GitHub eingerichtet")
 
 pruefe("setOnApplyWindowInsetsListener" in java,

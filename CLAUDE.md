@@ -1,4 +1,4 @@
-# Projekt-Tagebuch: Fischfang Tracker
+# Projekt-Tagebuch: Fisch-Fang-Tracker
 
 ## 1. Worum es geht
 
@@ -36,7 +36,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 ### Android-App (Ordner `android/`) – gebaut wie die Fitness-App des Nutzers
 
 - Kleine App (Java, ohne Zusatz-Bibliotheken), die die Online-Seite anzeigt
-  (`MainActivity.java`). Paketname `de.fischfang.app`, Name auf dem Handy „Fischfang Tracker“.
+  (`MainActivity.java`). Paketname `de.fischfang.app`, Name auf dem Handy „Fisch-Fang-Tracker“.
 - Was die App zusätzlich zur Webseite macht:
   - **GPS:** fragt die Standort-Erlaubnis von Android ab und gibt den Standort an die Seite.
   - **Sprache = Dauer-Diktat** (ab App 1.0.10, übernommen aus der App „Smartphone-Audio-Aufnahme“
@@ -101,7 +101,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - **Zwei Wege, ein Code:** Die Seite bleibt als installierbare Web-App (PWA) online, und
   zusätzlich gibt es eine **richtige Android-App** (Wunsch des Nutzers, 19.11.2026), gebaut wie
   seine Fitness-App. Kein Play Store – die APK wird direkt von GitHub geladen.
-- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v7`) erhöhen,
+- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v8`) erhöhen,
   damit alte gespeicherte Versionen sicher ersetzt werden.
 
 ## 3. Verlauf
@@ -121,6 +121,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 19.11.2026 | Play Protect blockierte 1.0.6 → Selbst-Installation entfernt, Download über Browser; Name „Fischfang Tracker“ | #8 |
 | 19.11.2026 | Nutzer hat 1.0.8 installiert. Dauer-Diktat: Sprachaufnahme stoppt nicht mehr bei Pausen, nur bei „Beenden“ | #9 |
 | 19.11.2026 | Diktat verlor nach Pausen den Anfang (Samsung beginnt intern neu) → wird jetzt gesichert. Start-Knopf war unter der Navigationsleiste (Android 15) → Abstand zu den Leisten | #10 |
+| 19.11.2026 | Name überall „Fisch-Fang-Tracker“ (unter dem Symbol, Titel, Kopfzeile) – Wunsch des Nutzers | #11 |
 
 ## 4. Offene Ideen / nächste Schritte
 
@@ -195,7 +196,7 @@ den Nutzer am Ende der Antwort:
 - [ ] Flugmodus an → App öffnen: Sie startet, Liste und Statistik gehen (Karte bleibt grau).
 - **Android-App:**
 - [ ] APK herunterladen und installieren (Play Protect: „App scannen“ reicht).
-- [ ] Symbol mit Namen „Fischfang Tracker“ (Angelrute mit orangem Fisch auf Blau) erscheint in der App-Liste, nichts abgeschnitten.
+- [ ] Symbol mit Namen „Fisch-Fang-Tracker“ (Angelrute mit orangem Fisch auf Blau) erscheint in der App-Liste, nichts abgeschnitten.
 - [ ] App öffnen: keine Adressleiste; Frage nach Standort-Erlaubnis → erlauben → Standort auf der Karte.
 - [ ] Mikrofon-Knopf: Fenster „Zuhören aktiv“, beim ersten Mal Mikrofon erlauben. Mit Pausen sprechen
       (z. B. „Zander … 65 Zentimeter … am Rhein“) → Text erscheint laufend, Aufnahme läuft weiter.
