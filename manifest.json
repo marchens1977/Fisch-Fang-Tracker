@@ -1,6 +1,6 @@
 {
-  "name": "Fischfang Tracker",
-  "short_name": "Fischfang Tracker",
+  "name": "Fisch-Fang-Tracker",
+  "short_name": "Fisch-Fang-Tracker",
   "description": "Fischfänge mit Karte, Sprache und Statistik festhalten",
   "lang": "de",
   "start_url": "./",
