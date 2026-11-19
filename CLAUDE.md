@@ -36,7 +36,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 ### Android-App (Ordner `android/`) – gebaut wie die Fitness-App des Nutzers
 
 - Kleine App (Java, ohne Zusatz-Bibliotheken), die die Online-Seite anzeigt
-  (`MainActivity.java`). Paketname `de.fischfang.app`, Name auf dem Handy „Fischfang“.
+  (`MainActivity.java`). Paketname `de.fischfang.app`, Name auf dem Handy „Fischfang Tracker“.
 - Was die App zusätzlich zur Webseite macht:
   - **GPS:** fragt die Standort-Erlaubnis von Android ab und gibt den Standort an die Seite.
   - **Sprache:** Die Browser-Spracherkennung gibt es in Apps nicht. Darum ruft die Seite
@@ -46,12 +46,15 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
     gespeichert ist, ruft die App `FischNativeApp.onBackupSaved()` („zuletzt gesichert“).
   - **Sicherung laden:** Dateiauswahl des Handys.
   - **Ohne Internet:** zeigt die gespeicherte Kopie der Seite.
-  - **Updates von selbst** (`UpdateChecker.java`, `UpdateReceiver.java`): Beim Start (höchstens
-    1x pro Stunde) fragt die App bei GitHub die neueste Version ab (Name `app-v1.0.N`, N =
-    Bau-Nummer = `versionCode`). Ist sie neuer, erscheint sofort ein Fenster „Update verfügbar“
-    → „Jetzt installieren“ lädt die APK und öffnet das Android-Installationsfenster.
-    Beim ersten Mal fragt Android einmal „Aus dieser Quelle zulassen“. Zusätzlich steht in der
+  - **Updates von selbst** (`UpdateChecker.java`): Beim Start (höchstens 1x pro Stunde) fragt
+    die App bei GitHub die neueste Version ab (Name `app-v1.0.N`, N = Bau-Nummer = `versionCode`).
+    Ist sie neuer, erscheint sofort ein Fenster „Update verfügbar“ → „Jetzt herunterladen“ lädt
+    die APK im Browser; der Nutzer tippt auf die Datei → „Aktualisieren“. Zusätzlich steht in der
     Statistik (nur in der App) die App-Version mit Knopf „Nach Update suchen“.
+  - **Wichtig – keine Selbst-Installation:** Version 1.0.6 konnte sich selbst installieren
+    (Erlaubnis `REQUEST_INSTALL_PACKAGES`). Google Play Protect hat sie deshalb als
+    „Schädliche App“ **blockiert** (kein „Trotzdem installieren“). Diese Erlaubnis darf in
+    selbst gebauten Apps des Nutzers **nicht** verwendet werden. Die Prüfung achtet darauf.
     Für andere Apps wiederverwendbar: in `UpdateChecker.java` nur `REPO` und `APK_NAME` ändern.
 - Download der fertigen App:
   https://github.com/marchens1977/Fisch-Fang-Tracker/releases/latest/download/FischfangTracker.apk
@@ -86,7 +89,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - **Zwei Wege, ein Code:** Die Seite bleibt als installierbare Web-App (PWA) online, und
   zusätzlich gibt es eine **richtige Android-App** (Wunsch des Nutzers, 19.11.2026), gebaut wie
   seine Fitness-App. Kein Play Store – die APK wird direkt von GitHub geladen.
-- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v4`) erhöhen,
+- Wenn sich Dateien der App ändern, in `sw.js` die Versionsnummer (`fischfang-v5`) erhöhen,
   damit alte gespeicherte Versionen sicher ersetzt werden.
 
 ## 3. Verlauf
@@ -103,6 +106,7 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 | 19.11.2026 | Richtige Android-App (Ordner `android/`), automatischer APK-Bau, App-Simulation im Test | #5 |
 | 19.11.2026 | Neues Symbol: Angelrute mit gefangenem Fisch (Wunsch des Nutzers, alter Fisch gefiel nicht) | #6 |
 | 19.11.2026 | App sucht selbst nach Updates und bietet sie sofort an (Wunsch des Nutzers) | #7 |
+| 19.11.2026 | Play Protect blockierte 1.0.6 → Selbst-Installation entfernt, Download über Browser; Name „Fischfang Tracker“ | #8 |
 
 ## 4. Offene Ideen / nächste Schritte
 
@@ -111,7 +115,8 @@ Fangort auf der Karte, Fischart, Größe, Notizen – per Hand oder per Sprache.
 - Filter in der Liste (z. B. nach Fischart oder Monat)
 - Kartenbilder für offline speichern (derzeit braucht die Karte Internet)
 - Android-App: Startbildschirm-Widget (z. B. „letzter Fang“), wie bei der Fitness-App
-- Update-Funktion auch in die Fitness-App (und weitere APK-Apps des Nutzers) übernehmen
+- Update-Funktion auch in die Fitness-App (und weitere APK-Apps des Nutzers) übernehmen –
+  OHNE `REQUEST_INSTALL_PACKAGES` (siehe oben, Play Protect)
 
 ## 5. Zusammenarbeit mit dem Nutzer
 
@@ -173,14 +178,14 @@ den Nutzer am Ende der Antwort:
 - [ ] Flugmodus an → App öffnen: Sie startet, Liste und Statistik gehen (Karte bleibt grau).
 - **Android-App:**
 - [ ] APK herunterladen und installieren (Play Protect: „App scannen“ reicht).
-- [ ] Symbol „Fischfang“ (Angelrute mit orangem Fisch auf Blau) erscheint in der App-Liste, nichts abgeschnitten.
+- [ ] Symbol mit Namen „Fischfang Tracker“ (Angelrute mit orangem Fisch auf Blau) erscheint in der App-Liste, nichts abgeschnitten.
 - [ ] App öffnen: keine Adressleiste; Frage nach Standort-Erlaubnis → erlauben → Standort auf der Karte.
 - [ ] Mikrofon-Knopf: Android-Sprachfenster erscheint, „Zander 65 Zentimeter“ → Fang wird eingetragen.
 - [ ] „Sichern“: Speicherort wählen, Datei wird gespeichert, Hinweis „zuletzt gesichert“ ist aktuell.
 - [ ] „Hinzufügen“: Sicherung aus Chrome laden → Fänge erscheinen in der App.
 - [ ] Statistik: unten steht „App-Version 1.0.N“ und der Knopf „Nach Update suchen“ → Meldung „neueste Version“.
-- [ ] Beim nächsten App-Update: Beim Öffnen erscheint „Update verfügbar“ → „Jetzt installieren“ →
-      einmalig „Aus dieser Quelle zulassen“ → Zurück → Android fragt „Aktualisieren?“ → Fänge sind noch da.
+- [ ] Beim nächsten App-Update: Beim Öffnen erscheint „Update verfügbar“ → „Jetzt herunterladen“ →
+      Download im Browser → auf die Datei tippen → „Aktualisieren“ → Fänge sind noch da.
 
 ## 8. Regel zum Tagebuch
 

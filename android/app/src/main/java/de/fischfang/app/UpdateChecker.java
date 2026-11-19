@@ -2,16 +2,13 @@ package de.fischfang.app;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
-import android.content.pm.PackageInstaller;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Settings;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -19,16 +16,18 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Sucht bei GitHub nach einer neueren Version der App und installiert sie auf Wunsch.
+ * Sucht bei GitHub nach einer neueren Version der App und bietet sie zum Herunterladen an.
  *
  * Ablauf: GitHub-„Release“ abfragen → Versionsnummer aus dem Namen (app-v1.0.N) mit der eigenen
- * vergleichen → Fenster „Update verfügbar“ → APK herunterladen → Android-Installationsfenster.
+ * vergleichen → Fenster „Update verfügbar“ → neue APK im Browser herunterladen.
+ *
+ * Bewusst OHNE die Erlaubnis „andere Apps installieren“ (REQUEST_INSTALL_PACKAGES):
+ * Damit stuft Google Play Protect eine selbst gebaute App als „schädlich“ ein und blockiert sie.
  * Wiederverwendbar für andere Apps: nur REPO und APK_NAME anpassen.
  */
 public class UpdateChecker {
@@ -40,9 +39,6 @@ public class UpdateChecker {
     private final Activity activity;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private boolean busy = false;
-    private boolean installAfterPermission = false;
-    private String pendingDownloadUrl;
-    private AlertDialog progressDialog;
 
     UpdateChecker(Activity activity) {
         this.activity = activity;
@@ -72,14 +68,6 @@ public class UpdateChecker {
         long last = prefs.getLong("lastCheck", 0);
         if (System.currentTimeMillis() - last < AUTO_CHECK_INTERVAL_MS) return;
         check(false);
-    }
-
-    /** Wird nach der Rückkehr aus den Einstellungen („Apps installieren erlauben“) aufgerufen. */
-    void onResume() {
-        if (installAfterPermission && canInstall()) {
-            installAfterPermission = false;
-            download(pendingDownloadUrl);
-        }
     }
 
     /** manual = true: auch „Du hast die neueste Version“ bzw. Fehler anzeigen. */
@@ -138,97 +126,24 @@ public class UpdateChecker {
                 .setTitle("Update verfügbar")
                 .setMessage("Eine neue Version der App ist da (" + newVersion + ", du hast "
                         + currentVersionName() + ").\n\nDeine Fänge bleiben beim Update erhalten.")
-                .setPositiveButton("Jetzt installieren", (d, w) -> startInstall(url))
+                .setPositiveButton("Jetzt herunterladen", (d, w) -> openDownload(url))
                 .setNegativeButton("Später", null)
                 .show();
     }
 
-    private boolean canInstall() {
-        return activity.getPackageManager().canRequestPackageInstalls();
-    }
-
-    private void startInstall(String url) {
-        if (canInstall()) {
-            download(url);
-            return;
-        }
-        // Android fragt einmalig: Darf diese App andere Apps (= ihre Updates) installieren?
-        pendingDownloadUrl = url;
-        new AlertDialog.Builder(activity)
-                .setTitle("Einmalige Erlaubnis")
-                .setMessage("Damit die App sich selbst aktualisieren kann, muss Android das einmal erlauben.\n\n"
-                        + "Auf der nächsten Seite den Schalter „Aus dieser Quelle zulassen“ einschalten "
-                        + "und dann mit „Zurück“ zur App wechseln.")
-                .setPositiveButton("Weiter", (d, w) -> {
-                    installAfterPermission = true;
-                    activity.startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                            Uri.parse("package:" + activity.getPackageName())));
-                })
-                .setNegativeButton("Abbrechen", null)
-                .show();
-    }
-
-    private void download(String url) {
-        if (url == null || busy) return;
-        busy = true;
-        progressDialog = new AlertDialog.Builder(activity)
-                .setTitle("Update wird geladen")
-                .setMessage("Bitte kurz warten …")
-                .setCancelable(false)
-                .show();
-        new Thread(() -> {
-            try {
-                PackageInstaller installer = activity.getPackageManager().getPackageInstaller();
-                PackageInstaller.SessionParams params =
-                        new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
-                params.setAppPackageName(activity.getPackageName());
-                int sessionId = installer.createSession(params);
-                try (PackageInstaller.Session session = installer.openSession(sessionId)) {
-                    HttpURLConnection conn = open(url);
-                    long total = conn.getContentLengthLong();
-                    try (InputStream in = conn.getInputStream();
-                         OutputStream out = session.openWrite("update.apk", 0, total > 0 ? total : -1)) {
-                        byte[] buf = new byte[16384];
-                        long done = 0;
-                        int lastPercent = -1;
-                        int n;
-                        while ((n = in.read(buf)) > 0) {
-                            out.write(buf, 0, n);
-                            done += n;
-                            if (total > 0) {
-                                int percent = (int) (done * 100 / total);
-                                if (percent != lastPercent) {
-                                    lastPercent = percent;
-                                    ui.post(() -> {
-                                        if (progressDialog != null) progressDialog.setMessage("Geladen: " + percent + " %");
-                                    });
-                                }
-                            }
-                        }
-                        session.fsync(out);
-                    } finally {
-                        conn.disconnect();
-                    }
-                    Intent callback = new Intent(activity, UpdateReceiver.class);
-                    PendingIntent pending = PendingIntent.getBroadcast(activity, sessionId, callback,
-                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
-                    session.commit(pending.getIntentSender());
-                }
-                ui.post(this::closeProgress);
-            } catch (Exception e) {
-                ui.post(() -> {
-                    closeProgress();
-                    toast("Update konnte nicht geladen werden. Bitte später noch einmal versuchen.");
-                });
-            }
-        }).start();
-    }
-
-    private void closeProgress() {
-        busy = false;
-        if (progressDialog != null) {
-            progressDialog.dismiss();
-            progressDialog = null;
+    /** Lädt die neue Version im Browser herunter; danach tippt man auf die Datei → „Aktualisieren“. */
+    private void openDownload(String url) {
+        try {
+            activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            new AlertDialog.Builder(activity)
+                    .setTitle("So geht es weiter")
+                    .setMessage("1. Warten, bis der Download fertig ist.\n"
+                            + "2. Auf die heruntergeladene Datei tippen (oben in der Benachrichtigung).\n"
+                            + "3. „Aktualisieren“ wählen.\n\nDeine Fänge bleiben erhalten.")
+                    .setPositiveButton("Verstanden", null)
+                    .show();
+        } catch (Exception e) {
+            toast("Download konnte nicht gestartet werden.");
         }
     }
 
